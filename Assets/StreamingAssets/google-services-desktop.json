@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "403346372927",
+    "project_id": "adventurerunners-576e0",
+    "storage_bucket": "adventurerunners-576e0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:403346372927:android:d54f527c38ecf80f307b8a",
+        "android_client_info": {
+          "package_name": "com.LeptusGames.AdventureRunners"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "403346372927-tcu7ks0dla0brhc2h5r9bpdg3sslpuiq.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.LeptusGames.AdventureRunners",
+            "certificate_hash": "628e7f89a624e259fe0814be1e076f4782514525"
+          }
+        },
+        {
+          "client_id": "403346372927-5enk77qjek6j1maje1toq6010umug62v.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB_jI1BravMHWJFkk-y5gObKSnVvTJ1bJo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "403346372927-5enk77qjek6j1maje1toq6010umug62v.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,11 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources xmlns:tools="http://schemas.android.com/tools" tools:keep="@string/gcm_defaultSenderId,@string/google_storage_bucket,@string/project_id,@string/google_api_key,@string/google_crash_reporting_api_key,@string/google_app_id,@string/default_android_client_id,@string/default_web_client_id">
+  <string name="gcm_defaultSenderId" translatable="false">403346372927</string>
+  <string name="google_storage_bucket" translatable="false">adventurerunners-576e0.firebasestorage.app</string>
+  <string name="project_id" translatable="false">adventurerunners-576e0</string>
+  <string name="google_api_key" translatable="false">AIzaSyB_jI1BravMHWJFkk-y5gObKSnVvTJ1bJo</string>
+  <string name="google_crash_reporting_api_key" translatable="false">AIzaSyB_jI1BravMHWJFkk-y5gObKSnVvTJ1bJo</string>
+  <string name="google_app_id" translatable="false">1:403346372927:android:d54f527c38ecf80f307b8a</string>
+  <string name="default_android_client_id" translatable="false">403346372927-tcu7ks0dla0brhc2h5r9bpdg3sslpuiq.apps.googleusercontent.com</string>
+  <string name="default_web_client_id" translatable="false">403346372927-5enk77qjek6j1maje1toq6010umug62v.apps.googleusercontent.com</string>
+</resources>
