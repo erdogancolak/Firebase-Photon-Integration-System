@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 public class FirebaseInitManager : MonoBehaviour
 {
+    [Header("UI References")]
     [SerializeField] private Image firebaseAuthControllerImage;
     [SerializeField] private Color connectedColor, errorColor;
     void Start()
