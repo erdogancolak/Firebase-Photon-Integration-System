@@ -6,8 +6,11 @@ using System.Threading.Tasks;
 using UnityEngine;
 using TMPro;
 using Firebase.Auth;
+using Firebase.Firestore;
 using UnityEngine.UI;
 using UnityEngine.Networking;
+using UnityEngine.SceneManagement;
+using Unity.VisualScripting;
 
 public class GoogleLoginManager : MonoBehaviour
 {
@@ -19,16 +22,18 @@ public class GoogleLoginManager : MonoBehaviour
     [Header("Firebase Auth")]
     private FirebaseAuth auth;
     private FirebaseUser user;
+    private FirebaseFirestore db;
 
     [Header("UI References")]
     [SerializeField] private GameObject LoginPanel;
     [SerializeField] private GameObject UserPanel;
+    [SerializeField] private GameObject nicknamePanel;
+    [SerializeField] private TMP_InputField nicknameInput;
+    [SerializeField] private Button nicknameSubmit;
     [SerializeField] private TMP_Text UserEmail;
     [SerializeField] private TMP_Text Username;
     [SerializeField] private Image UserProfilePic;
-    [SerializeField] private Image checkNewUser;
-    [SerializeField] private Color newUserColor;
-    [SerializeField] private Color defaultUserColor = Color.white; // Varsayýlan renk
+
 
     private string imageUrl;
     private bool isGoogleSignInInitialized = false;
@@ -36,16 +41,96 @@ public class GoogleLoginManager : MonoBehaviour
     private void Start()
     {
         InitFirebase();
-        // Baþlangýçta kontrol rengini varsayýlana ayarla
-        if (checkNewUser != null)
-        {
-            checkNewUser.color = defaultUserColor;
-        }
     }
 
     void InitFirebase()
     {
         auth = FirebaseAuth.DefaultInstance;
+        db = FirebaseFirestore.DefaultInstance;
+
+        auth.StateChanged += authStateChanged;
+        authStateChanged(this, null);
+    }
+
+    void authStateChanged(object sender,System.EventArgs eventArgs)
+    {
+        if(auth.CurrentUser != user)
+        {
+            bool signedIn = user != auth.CurrentUser && auth.CurrentUser != null;
+            if(signedIn && user != null)
+            {
+                Debug.Log("Oturum Kapatýldý");
+            }
+            user = auth.CurrentUser;
+            if(signedIn)
+            {
+                Debug.Log($"Oturum Açýldý : {user.Email}");
+                CheckUserInDatabase(user);
+            }
+        }
+    }
+
+    void CheckUserInDatabase(FirebaseUser newUser)
+    {
+        DocumentReference userDocRef = db.Collection("kullanicilar").Document(newUser.UserId);
+        userDocRef.GetSnapshotAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsFaulted)
+            {
+                Debug.LogError("Firestore'dan veri alýnamadý: " + task.Exception);
+                return;
+            }
+
+            DocumentSnapshot snapshot = task.Result;
+            if (snapshot.Exists)
+            {
+                Debug.Log($"Hoþ geldin {snapshot.GetValue<string>("nickname")}! Oyun sahnesi yükleniyor...");
+                SceneManager.LoadScene("ClientScene");
+            }
+            else
+            {
+                Debug.Log("Yeni kullanýcý tespit edildi. Nickname paneli açýlýyor.");
+                LoginPanel.SetActive(false);
+                UserPanel.SetActive(false);
+                nicknamePanel.SetActive(true);
+
+                nicknameSubmit.onClick.RemoveAllListeners();
+                nicknameSubmit.onClick.AddListener(() =>
+                {
+                    SaveNickname(newUser);
+                });
+            }
+        });
+    }
+    public void SaveNickname(FirebaseUser userToSave)
+    {
+        string nickname = nicknameInput.text;
+        if(string.IsNullOrEmpty(nickname))
+        {
+            Debug.LogError("Nickname Boþ Olamaz");
+            return;
+        }
+        DocumentReference userDocRef = db.Collection("kullanicilar").Document(userToSave.UserId);
+
+        var userData = new Dictionary<string, object>
+        {
+            {"email" , userToSave.Email},
+            {"nickname" , nickname },
+            {"created_at", FieldValue.ServerTimestamp }
+        };
+
+        userDocRef.SetAsync(userData).ContinueWithOnMainThread(task => 
+        {
+            if(task.IsFaulted)
+            {
+                Debug.LogError("Nickname kaydedilemedi: " + task.Exception);
+                return;
+            }
+
+            Debug.Log("Nickname baþarýyla kaydedildi! Oyun sahnesi yükleniyor...");
+            nicknamePanel.SetActive(false);
+            SceneManager.LoadScene("ClientScene");
+        });
     }
 
     public void Login()
@@ -91,36 +176,15 @@ public class GoogleLoginManager : MonoBehaviour
                     Debug.LogError("Firebase auth failed: " + authTask.Exception);
                     return;
                 }
+                //user = authTask.Result;
 
-                // --- DÜZELTME: AuthResult kaldýrýldý, doðrudan FirebaseUser kullanýlýyor ---
-                // SignInWithCredentialAsync'in sonucu artýk doðrudan bir FirebaseUser'dýr.
-                user = authTask.Result;
-                // --- DÜZELTME SONU ---
+                //Username.text = user.DisplayName;
+                //UserEmail.text = user.Email;
 
-                // Kullanýcýnýn metadata'sýndan oluþturulma ve son giriþ zamanlarýný alýyoruz.
-                ulong creationTimestamp = user.Metadata.CreationTimestamp;
-                ulong lastSignInTimestamp = user.Metadata.LastSignInTimestamp;
+                //LoginPanel.SetActive(false);
+                //UserPanel.SetActive(true);
 
-                // Eðer son giriþ zamaný ile oluþturulma zamaný arasýndaki fark çok küçükse
-                // (örneðin 2 saniyeden az), bu kullanýcýnýn ilk giriþi demektir.
-                if (lastSignInTimestamp - creationTimestamp < 2000)
-                {
-                    Debug.Log("Yeni kullanýcý zaman damgasý karþýlaþtýrmasý ile tespit edildi!");
-                    checkNewUser.color = newUserColor;
-                }
-                else
-                {
-                    Debug.Log("Mevcut kullanýcý tespit edildi.");
-                    checkNewUser.color = defaultUserColor;
-                }
-
-                Username.text = user.DisplayName;
-                UserEmail.text = user.Email;
-
-                LoginPanel.SetActive(false);
-                UserPanel.SetActive(true);
-
-                StartCoroutine(LoadImage(CheckImageUrl(user.PhotoUrl?.ToString())));
+                //StartCoroutine(LoadImage(CheckImageUrl(user.PhotoUrl?.ToString())));
             });
         });
     }
@@ -168,11 +232,6 @@ public class GoogleLoginManager : MonoBehaviour
 
         LoginPanel.SetActive(true);
         UserPanel.SetActive(false);
-
-        // Çýkýþ yapýldýðýnda kontrol rengini varsayýlana sýfýrla
-        if (checkNewUser != null)
-        {
-            checkNewUser.color = defaultUserColor;
-        }
+        nicknamePanel.SetActive(false);
     }
 }
