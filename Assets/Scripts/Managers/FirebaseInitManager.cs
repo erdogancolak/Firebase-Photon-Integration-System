@@ -5,9 +5,9 @@ using UnityEngine.UI;
 
 public class FirebaseInitManager : MonoBehaviour
 {
-    [Header("UI References")]
-    [SerializeField] private Image firebaseAuthControllerImage;
-    [SerializeField] private Color connectedColor, errorColor;
+    //[Header("UI References")]
+    //[SerializeField] private Image firebaseAuthControllerImage;
+    //[SerializeField] private Color connectedColor, errorColor;
     void Start()
     {
         FirebaseApp.CheckAndFixDependenciesAsync().ContinueWith(task => {
@@ -15,14 +15,14 @@ public class FirebaseInitManager : MonoBehaviour
             if (status == DependencyStatus.Available)
             {
                 Debug.Log("<color=green>===========[FIREBASE CONNECTED ✅]===========</color>");
-                firebaseAuthControllerImage.color = connectedColor;
+                //firebaseAuthControllerImage.color = connectedColor;
 
                 FirebaseApp app = FirebaseApp.DefaultInstance;
             }
             else
             {
                 Debug.Log("<color=green>===========[FIREBASE FAILED ❌]===========</color>");
-                firebaseAuthControllerImage.color=errorColor;
+                //firebaseAuthControllerImage.color=errorColor;
             }
         });
     }

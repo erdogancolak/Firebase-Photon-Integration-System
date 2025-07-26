@@ -11,6 +11,7 @@ using UnityEngine.UI;
 using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using Unity.VisualScripting;
+using System.Globalization;
 
 public class GoogleLoginManager : MonoBehaviour
 {
@@ -85,6 +86,10 @@ public class GoogleLoginManager : MonoBehaviour
             if (snapshot.Exists)
             {
                 Debug.Log($"Hoþ geldin {snapshot.GetValue<string>("nickname")}! Oyun sahnesi yükleniyor...");
+
+                PlayerPrefs.SetInt("IsLoggedIn", 1);
+                PlayerPrefs.Save();
+
                 SceneManager.LoadScene("ClientScene");
             }
             else
@@ -116,7 +121,10 @@ public class GoogleLoginManager : MonoBehaviour
         {
             {"email" , userToSave.Email},
             {"nickname" , nickname },
-            {"created_at", FieldValue.ServerTimestamp }
+            {"created_at", FieldValue.ServerTimestamp },
+            {"device_language",Application.systemLanguage.ToString() },
+            {"country_code",RegionInfo.CurrentRegion.TwoLetterISORegionName },
+            {"device_model",SystemInfo.deviceModel }
         };
 
         userDocRef.SetAsync(userData).ContinueWithOnMainThread(task => 
@@ -129,6 +137,10 @@ public class GoogleLoginManager : MonoBehaviour
 
             Debug.Log("Nickname baþarýyla kaydedildi! Oyun sahnesi yükleniyor...");
             nicknamePanel.SetActive(false);
+
+            PlayerPrefs.SetInt("IsLoggedIn", 1);
+            PlayerPrefs.Save();
+
             SceneManager.LoadScene("ClientScene");
         });
     }
@@ -230,8 +242,16 @@ public class GoogleLoginManager : MonoBehaviour
         }
         GoogleSignIn.DefaultInstance.SignOut();
 
+        PlayerPrefs.SetInt("IsLoggedIn", 0);
+        PlayerPrefs.Save();
+
         LoginPanel.SetActive(true);
         UserPanel.SetActive(false);
         nicknamePanel.SetActive(false);
+    }
+
+    public void ExitGame()
+    {
+        Application.Quit();
     }
 }
