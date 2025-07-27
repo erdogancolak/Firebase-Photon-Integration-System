@@ -1,4 +1,5 @@
 using System.Collections;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -10,19 +11,58 @@ public class LoadingManager : MonoBehaviour
 
     [Header("Loading Settings")]
     [SerializeField] private float fakeLoadSpeed;
+
+    [Header("Connectivity")]
+    [SerializeField] private GameObject noInternetPanel;
+    [SerializeField] private Button retryButton;
+
+    private bool isLoading = false;
     void Start()
     {
-        Debug.Log("Test");
-        if(PlayerPrefs.GetInt("IsLoggedIn", 0) == 1)
+        if(noInternetPanel != null)
         {
-            StartCoroutine(LoadSceneAsync("ClientScene"));
+            noInternetPanel.SetActive(false);
+        }
+
+        if (retryButton != null)
+        {
+            retryButton.onClick.AddListener(InitiateLoading);
+        }
+
+        InitiateLoading();
+    }
+
+    public void InitiateLoading()
+    {
+        if (isLoading) return;
+
+        if (Application.internetReachability == NetworkReachability.NotReachable)
+        {
+            Debug.LogError("Ýnternet baðlantýsý bulunamadý.");
+            if (noInternetPanel != null)
+            {
+                noInternetPanel.SetActive(true);
+            }
         }
         else
         {
-            StartCoroutine(LoadSceneAsync("LoginScene"));
+            Debug.Log("Ýnternet baðlantýsý var. Yükleme baþlýyor.");
+            isLoading = true; 
+            if (noInternetPanel != null)
+            {
+                noInternetPanel.SetActive(false); 
+            }
+
+            if (PlayerPrefs.GetInt("IsLoggedIn", 0) == 1)
+            {
+                StartCoroutine(LoadSceneAsync("ClientScene"));
+            }
+            else
+            {
+                StartCoroutine(LoadSceneAsync("LoginScene"));
+            }
         }
     }
-
     IEnumerator LoadSceneAsync(string sceneName)
     {
         AsyncOperation operation = SceneManager.LoadSceneAsync(sceneName);
@@ -42,7 +82,6 @@ public class LoadingManager : MonoBehaviour
         {
             yield return null;
         }
-        Debug.Log("Test2");
         operation.allowSceneActivation = true;
     }
 }

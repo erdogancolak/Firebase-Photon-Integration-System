@@ -7,12 +7,15 @@ public class UserDataManager : MonoBehaviour
     public string UserNickname { get; private set; }
     public string UserEmail { get; private set; }
     public string UserID { get; private set; }
+
+    public bool isDataLoaded { get; private set; }
     private void Awake()
     {
         if(instance == null)
         {
             instance = this;
             DontDestroyOnLoad(gameObject);
+            isDataLoaded = false;
         }
         else
         {
@@ -20,10 +23,11 @@ public class UserDataManager : MonoBehaviour
         }
     }
 
-    void setUserData(string nickname,string email,string userId)
+    public void setUserData(string nickname,string email,string userId)
     {
         UserNickname = nickname;
         UserEmail = email;
         UserID = userId;
+        isDataLoaded = true;
     }
 }
