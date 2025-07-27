@@ -11,6 +11,8 @@ public class ClientInfoLoaderManager : MonoBehaviour
 
     void Start()
     {
+        nicknameText.text = "";
+
         if (UserDataManager.instance == null)
         {
             Debug.LogError("User Data Manager Bulunamadý! Sistemde kritik bir hata var.");
@@ -62,7 +64,6 @@ public class ClientInfoLoaderManager : MonoBehaviour
 
     void DisplayNickname()
     {
-        // Bu fonksiyon artýk tek bir iþ yapýyor: Veriyi ekrana yazdýrmak.
         nicknameText.text = UserDataManager.instance.UserNickname;
         Debug.Log("Nickname baþarýyla yazdýrýldý: " + UserDataManager.instance.UserNickname);
     }
