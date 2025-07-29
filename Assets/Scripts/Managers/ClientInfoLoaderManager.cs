@@ -11,55 +11,15 @@ public class ClientInfoLoaderManager : MonoBehaviour
 
     void Start()
     {
-        nicknameText.text = "";
-
-        if (UserDataManager.instance == null)
-        {
-            Debug.LogError("User Data Manager Bulunamadý! Sistemde kritik bir hata var.");
-            return;
-        }
-
-        if (UserDataManager.instance.isDataLoaded)
+        if (UserDataManager.instance != null && UserDataManager.instance.isDataLoaded)
         {
             DisplayNickname();
         }
         else
         {
-            FetchDataFromFirestore();
+            Debug.LogError("ClientInfoLoaderManager: UserDataManager boþ veya veri yüklenmemiþ!");
+            nicknameText.text = "Hata!";
         }
-    }
-
-    void FetchDataFromFirestore()
-    {
-        FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
-        if (user == null)
-        {
-            Debug.LogError("Kullanýcý giriþi bulunamadý! Login sahnesine yönlendiriliyor.");
-            return;
-        }
-
-        Debug.Log("Veri UserDataManager'da bulunamadý. Firestore'dan çekiliyor...");
-        DocumentReference docRef = FirebaseFirestore.DefaultInstance.Collection("kullanicilar").Document(user.UserId);
-        docRef.GetSnapshotAsync().ContinueWithOnMainThread(task =>
-        {
-            if (task.IsCompleted && !task.IsFaulted && task.Result.Exists)
-            {
-                DocumentSnapshot snapshot = task.Result;
-                var userData = snapshot.ToDictionary();
-
-                UserDataManager.instance.setUserData(
-                    userData["nickname"].ToString(),
-                    userData["email"].ToString(),
-                    user.UserId
-                );
-
-                DisplayNickname();
-            }
-            else
-            {
-                Debug.LogError("Kritik Hata: Kullanýcý giriþi yapýlmýþ ama Firestore'da veri bulunamadý.");
-            }
-        });
     }
 
     void DisplayNickname()

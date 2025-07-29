@@ -4,6 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class FindMatchManager : MonoBehaviourPunCallbacks
 {
@@ -25,24 +26,20 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
     void Start()
     {
         findMatchPanel.SetActive(false);
-        playButton.interactable = false;
-
-        if(UserDataManager.instance != null && UserDataManager.instance.isDataLoaded)
+       
+        if(PhotonNetwork.IsConnected)
         {
-            PhotonNetwork.NickName = UserDataManager.instance.UserNickname;
+            Debug.Log("ClientScene: Photon baðlantýsý hazýr. Nickname: " + PhotonNetwork.NickName);
+            playButton.interactable = true;
         }
         else
         {
-            PhotonNetwork.NickName = "Oyuncu " + Random.Range(1000, 9999);
-            Debug.LogWarning("UserDataManager'dan isim alýnamadý, rastgele isim atandý.");
+            Debug.Log("ClientScene: Photon baðlantýsý hazýr. Nickname: " + PhotonNetwork.NickName);
+            playButton.interactable = false;
+
+            LoadingManager.connectionRetries++;
+            SceneManager.LoadScene("LoadingScene");
         }
-
-        Debug.Log("Oyuncu Adi " + PhotonNetwork.NickName);
-        PhotonNetwork.AutomaticallySyncScene = true;
-        PhotonNetwork.GameVersion = gameVersion;
-
-        Debug.Log("Photon Sunucusuna Baðlanýyor...");
-        PhotonNetwork.ConnectUsingSettings();
     }
 
     private void Update()
@@ -50,12 +47,12 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
         SearchTime();
     }
 
-    public override void OnConnectedToMaster()
-    {
-        Debug.Log("Master Sunucusuna Baðlanýldý!!");
+    //public override void OnConnectedToMaster()
+    //{
+    //    Debug.Log("Master Sunucusuna Baðlanýldý!!");
 
-        playButton.interactable = true;
-    }
+    //    playButton.interactable = true;
+    //}
 
     public void FindMatch()
     {

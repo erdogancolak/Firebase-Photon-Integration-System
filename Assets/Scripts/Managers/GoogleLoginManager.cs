@@ -12,6 +12,7 @@ using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
 using Unity.VisualScripting;
 using System.Globalization;
+using System.Text.RegularExpressions;
 
 public class GoogleLoginManager : MonoBehaviour
 {
@@ -29,8 +30,14 @@ public class GoogleLoginManager : MonoBehaviour
     [SerializeField] private GameObject LoginPanel;
     [SerializeField] private GameObject UserPanel;
     [SerializeField] private GameObject nicknamePanel;
+
+    [Header("Nickname")]
     [SerializeField] private TMP_InputField nicknameInput;
     [SerializeField] private Button nicknameSubmit;
+    private string currentNickname = "";
+    [SerializeField] private TMP_Text nicknameError;
+
+    [Header("User Data")]
     [SerializeField] private TMP_Text UserEmail;
     [SerializeField] private TMP_Text Username;
     [SerializeField] private Image UserProfilePic;
@@ -42,6 +49,13 @@ public class GoogleLoginManager : MonoBehaviour
     private void Start()
     {
         InitFirebase();
+
+        nicknameInput.onValueChanged.AddListener(OnNicknameChanged);
+
+        if(nicknameError != null)
+        {
+            nicknameError.gameObject.SetActive(false);
+        }
     }
 
     void InitFirebase()
@@ -112,12 +126,26 @@ public class GoogleLoginManager : MonoBehaviour
     }
     public void SaveNickname(FirebaseUser userToSave)
     {
-        string nickname = nicknameInput.text;
-        if(string.IsNullOrEmpty(nickname))
+        string nickname = currentNickname.Trim();
+
+        if (nickname.Length < 3 || nickname.Length > 14)
+        {
+            ShowNicknameError("Nickname 3 ile 14 karakter arasýnda olmalýdýr.");
+            return;
+        }
+        if(!Regex.IsMatch(nickname,@"^[a-zA-Z0-9]+&"))
+        {
+            ShowNicknameError("Nickname sadece harf ve rakam içerebilir.");
+            return;
+        }
+        if (string.IsNullOrEmpty(nickname))
         {
             Debug.LogError("Nickname Boþ Olamaz");
             return;
         }
+
+        Debug.Log("Nickname Uygun, Kaydediliyor...");
+
         DocumentReference userDocRef = db.Collection("kullanicilar").Document(userToSave.UserId);
 
         var userData = new Dictionary<string, object>
@@ -148,6 +176,26 @@ public class GoogleLoginManager : MonoBehaviour
 
             SceneManager.LoadScene("ClientScene");
         });
+    }
+
+    public void OnNicknameChanged(string newText)
+    {
+        currentNickname = newText;
+
+        if(nicknameError != null && nicknameError.gameObject.activeSelf)
+        {
+            nicknameError.gameObject.SetActive(false);
+        }
+    }
+
+    private void ShowNicknameError(string message)
+    {
+        Debug.LogError(message);
+        if (nicknameError != null)
+        {
+            nicknameError.text = message;
+            nicknameError.gameObject.SetActive(true);
+        }
     }
 
     public void Login()
