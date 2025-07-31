@@ -8,7 +8,6 @@ using UnityEngine.SceneManagement;
 
 public class FindMatchManager : MonoBehaviourPunCallbacks
 {
-    private string gameVersion = "1.0";
     [Header("UI References")]
     [SerializeField] private Button playButton;
     [SerializeField] private GameObject findMatchPanel;
@@ -25,37 +24,36 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
 
     void Start()
     {
-        findMatchPanel.SetActive(false);
-       
-        if(PhotonNetwork.IsConnected)
-        {
-            Debug.Log("ClientScene: Photon baðlantýsý hazýr. Nickname: " + PhotonNetwork.NickName);
-            playButton.interactable = true;
-        }
-        else
-        {
-            Debug.Log("ClientScene: Photon baðlantýsý hazýr. Nickname: " + PhotonNetwork.NickName);
-            playButton.interactable = false;
-
-            LoadingManager.connectionRetries++;
-            SceneManager.LoadScene("LoadingScene");
-        }
+        StartCoroutine(EnsureConnectedAndReady());
     }
 
     private void Update()
     {
         SearchTime();
     }
+    IEnumerator EnsureConnectedAndReady()
+    {
+        playButton.interactable = false;
+        findMatchPanel.SetActive(false);
 
-    //public override void OnConnectedToMaster()
-    //{
-    //    Debug.Log("Master Sunucusuna Baðlanýldý!!");
+        while(!PhotonNetwork.IsConnectedAndReady)
+        {
+            Debug.Log("ClientScene: Master sunucusuna durumun güncellenmesi bekleniyor...");
+            yield return null;
+        }
 
-    //    playButton.interactable = true;
-    //}
+        Debug.Log("ClientScene: Photon baðlantýsý hazýr. Nickname: " + PhotonNetwork.NickName);
+        playButton.interactable = true;
+    }
 
     public void FindMatch()
     {
+        if (!PhotonNetwork.IsConnectedAndReady)
+        {
+            Debug.LogError("Maç aranamýyor, sunucu baðlantýsý yok!");
+            return;
+        }
+
         playButton.gameObject.SetActive(false);
         findMatchPanel.SetActive(true);
         findMatchStatusText.text = "Oyun Araniyor...";
@@ -75,17 +73,7 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
 
         Debug.Log("Fake Timer Doldu, Oda aranýyor...");
 
-        if(PhotonNetwork.IsConnected)
-        {
-            Debug.Log("Rastgele bir odaya baðlanýyor...");
-            PhotonNetwork.JoinRandomRoom();
-        }
-        else
-        {
-            findMatchStatusText.text = "Sunucu Hatasý...";
-            Debug.LogWarning("Master Sunucusuna Baðlanýlamadý! Tekrar Deneniyor!");
-            PhotonNetwork.ConnectUsingSettings();
-        }
+        PhotonNetwork.JoinRandomRoom();
     }
     public void CancelMatchmaking()
     {
@@ -95,6 +83,7 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
             Debug.Log("Maç Arama Coroutine Ýptal Edildi!");
         }
 
+        isSearching = false;
         Debug.Log("Maç arama iptal edildi!");
 
         playButton.gameObject.SetActive(true);
@@ -110,7 +99,7 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
     {
         Debug.Log("Rastgele bir oda bulunamadý! Yeni bir oda kuruluyor!");
 
-        PhotonNetwork.CreateRoom(null, new RoomOptions { MaxPlayers = 4 });
+        PhotonNetwork.CreateRoom(null, new RoomOptions { MaxPlayers = 4,IsVisible = true,IsOpen = true });
     }
 
     public override void OnJoinedRoom()

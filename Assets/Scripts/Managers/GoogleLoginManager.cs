@@ -28,7 +28,6 @@ public class GoogleLoginManager : MonoBehaviour
 
     [Header("UI References")]
     [SerializeField] private GameObject LoginPanel;
-    [SerializeField] private GameObject UserPanel;
     [SerializeField] private GameObject nicknamePanel;
 
     [Header("Nickname")]
@@ -37,13 +36,6 @@ public class GoogleLoginManager : MonoBehaviour
     private string currentNickname = "";
     [SerializeField] private TMP_Text nicknameError;
 
-    [Header("User Data")]
-    [SerializeField] private TMP_Text UserEmail;
-    [SerializeField] private TMP_Text Username;
-    [SerializeField] private Image UserProfilePic;
-
-
-    private string imageUrl;
     private bool isGoogleSignInInitialized = false;
 
     private void Start()
@@ -107,13 +99,12 @@ public class GoogleLoginManager : MonoBehaviour
                 PlayerPrefs.SetInt("IsLoggedIn", 1);
                 PlayerPrefs.Save();
 
-                SceneManager.LoadScene("ClientScene");
+                SceneManager.LoadScene("LoadingScene");
             }
             else
             {
                 Debug.Log("Yeni kullanýcý tespit edildi. Nickname paneli açýlýyor.");
                 LoginPanel.SetActive(false);
-                UserPanel.SetActive(false);
                 nicknamePanel.SetActive(true);
 
                 nicknameSubmit.onClick.RemoveAllListeners();
@@ -124,7 +115,7 @@ public class GoogleLoginManager : MonoBehaviour
             }
         });
     }
-    public void SaveNickname(FirebaseUser userToSave)
+    public async void SaveNickname(FirebaseUser userToSave)
     {
         string nickname = currentNickname.Trim();
 
@@ -133,18 +124,24 @@ public class GoogleLoginManager : MonoBehaviour
             ShowNicknameError("Nickname 3 ile 14 karakter arasýnda olmalýdýr.");
             return;
         }
-        if(!Regex.IsMatch(nickname,@"^[a-zA-Z0-9]+&"))
+        if(!Regex.IsMatch(nickname,@"^[a-zA-Z0-9]+$"))
         {
             ShowNicknameError("Nickname sadece harf ve rakam içerebilir.");
             return;
         }
-        if (string.IsNullOrEmpty(nickname))
+
+        nicknameSubmit.interactable = false;
+
+        Query query = db.Collection("kullanicilar").WhereEqualTo("nickname", nickname);
+        QuerySnapshot querySnapshot = await query.GetSnapshotAsync();
+
+        if (querySnapshot.Count > 0)
         {
-            Debug.LogError("Nickname Boþ Olamaz");
+            ShowNicknameError("Bu nickname zaten alýnmýþ. Lütfen baþka bir tane dene.");
+            nicknameSubmit.interactable = true;
             return;
         }
 
-        Debug.Log("Nickname Uygun, Kaydediliyor...");
 
         DocumentReference userDocRef = db.Collection("kullanicilar").Document(userToSave.UserId);
 
@@ -158,24 +155,17 @@ public class GoogleLoginManager : MonoBehaviour
             {"device_model",SystemInfo.deviceModel }
         };
 
-        userDocRef.SetAsync(userData).ContinueWithOnMainThread(task => 
-        {
-            if(task.IsFaulted)
-            {
-                Debug.LogError("Nickname kaydedilemedi: " + task.Exception);
-                return;
-            }
+        await userDocRef.SetAsync(userData);
 
-            Debug.Log("Nickname baþarýyla kaydedildi! Oyun sahnesi yükleniyor...");
-            nicknamePanel.SetActive(false);
+        Debug.Log("Nickname baþarýyla kaydedildi! Oyun sahnesi yükleniyor...");
+        nicknamePanel.SetActive(false);
 
-            UserDataManager.instance.setUserData(nickname,userToSave.Email, userToSave.UserId);
+        UserDataManager.instance.setUserData(nickname, userToSave.Email, userToSave.UserId);
 
-            PlayerPrefs.SetInt("IsLoggedIn", 1);
-            PlayerPrefs.Save();
+        PlayerPrefs.SetInt("IsLoggedIn", 1);
+        PlayerPrefs.Save();
 
-            SceneManager.LoadScene("ClientScene");
-        });
+        SceneManager.LoadScene("LoadingScene");
     }
 
     public void OnNicknameChanged(string newText)
@@ -241,65 +231,7 @@ public class GoogleLoginManager : MonoBehaviour
                     Debug.LogError("Firebase auth failed: " + authTask.Exception);
                     return;
                 }
-                //user = authTask.Result;
-
-                //Username.text = user.DisplayName;
-                //UserEmail.text = user.Email;
-
-                //LoginPanel.SetActive(false);
-                //UserPanel.SetActive(true);
-
-                //StartCoroutine(LoadImage(CheckImageUrl(user.PhotoUrl?.ToString())));
             });
         });
-    }
-
-    private string CheckImageUrl(string url)
-    {
-        if (!string.IsNullOrEmpty(url))
-        {
-            return url;
-        }
-        return imageUrl;
-    }
-
-    IEnumerator LoadImage(string imageUri)
-    {
-        if (string.IsNullOrEmpty(imageUri)) yield break; // URL boþsa iþlemi bitir
-
-        using (UnityWebRequest www = UnityWebRequestTexture.GetTexture(imageUri))
-        {
-            yield return www.SendWebRequest();
-
-            if (www.result == UnityWebRequest.Result.Success)
-            {
-                Texture2D texture = DownloadHandlerTexture.GetContent(www);
-                if (UserProfilePic != null)
-                {
-                    UserProfilePic.sprite = Sprite.Create(texture, new Rect(0, 0, texture.width, texture.height), new Vector2(0.5f, 0.5f));
-                    Debug.Log("Image loaded successfully.");
-                }
-            }
-            else
-            {
-                Debug.LogError("Error loading profile image: " + www.error);
-            }
-        }
-    }
-
-    public void SignOut()
-    {
-        if (auth.CurrentUser != null)
-        {
-            auth.SignOut();
-        }
-        GoogleSignIn.DefaultInstance.SignOut();
-
-        PlayerPrefs.SetInt("IsLoggedIn", 0);
-        PlayerPrefs.Save();
-        
-        LoginPanel.SetActive(true);
-        UserPanel.SetActive(false);
-        nicknamePanel.SetActive(false);
     }
 }

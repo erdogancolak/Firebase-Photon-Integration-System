@@ -11,6 +11,7 @@ using UnityEngine.UI;
 
 public class LoadingManager : MonoBehaviourPunCallbacks
 {
+    [SerializeField] private string gameVersion = "1.0";
     [Header("UI References")]
     [SerializeField] private Slider loadingSlider;
 
@@ -26,6 +27,7 @@ public class LoadingManager : MonoBehaviourPunCallbacks
     public static int connectionRetries = 0;
     private const int MAX_RETRIES = 3;
     private bool isPhotonConnected;
+
     void Start()
     {
         if (loadingSlider != null)
@@ -37,9 +39,10 @@ public class LoadingManager : MonoBehaviourPunCallbacks
         if (quitButton != null)
             quitButton.onClick.AddListener(QuitApplication);
 
+        
         InitiateLoading();
     }
-
+   
     public void InitiateLoading()
     {
         if(connectionRetries >= MAX_RETRIES)
@@ -75,7 +78,12 @@ public class LoadingManager : MonoBehaviourPunCallbacks
 
         yield return StartCoroutine(UpdateSlider(0.4f));
 
-        Debug.Log("Photon Sunucusuna Baðlanýlýyor...");
+        PhotonNetwork.NickName = UserDataManager.instance != null && UserDataManager.instance.isDataLoaded
+       ? UserDataManager.instance.UserNickname
+       : "Oyuncu" + Random.Range(1000, 9999);
+
+       Debug.Log("Photon Sunucusuna Baðlanýlýyor... " + PhotonNetwork.NickName);
+
         ConnectToPhoton();
 
         yield return new WaitUntil(() => isPhotonConnected);
@@ -145,16 +153,8 @@ public class LoadingManager : MonoBehaviourPunCallbacks
             isPhotonConnected = true;
             return;
         }
-
-        if (UserDataManager.instance != null && UserDataManager.instance.isDataLoaded)
-        {
-            PhotonNetwork.NickName = UserDataManager.instance.UserNickname;
-        }
-        else
-        {
-            PhotonNetwork.NickName = "Oyuncu" + Random.Range(1000, 9999);
-        }
-        PhotonNetwork.GameVersion = "1.0";
+        
+        PhotonNetwork.GameVersion = gameVersion;
         PhotonNetwork.AutomaticallySyncScene = true;
         PhotonNetwork.ConnectUsingSettings();
     }

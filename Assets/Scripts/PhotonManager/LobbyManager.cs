@@ -14,32 +14,11 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     [Header("Player List")]
     [SerializeField] private Transform playerListContainer;
     [SerializeField] private GameObject playerListItemPrefab;
-
     private List<GameObject> playerList = new List<GameObject>();
 
-    private void OnEnable()
-    {
-        base.OnEnable();
-        UpdatePlayerList();
-    }
-    private void OnDisable()
-    {
-        base.OnDisable();
-        UpdatePlayerList();
-    }
     void Start()
     {
-        if(PhotonNetwork.InRoom)
-        {
-            string currentRoomName = PhotonNetwork.CurrentRoom.Name;
-            roomNameText.text = currentRoomName;
-
-            Debug.Log("Oda Adý Yazdýrýldý!");
-        }
-        else
-        {
-            Debug.Log("Bir Odada deðilsiniz!");
-        }
+        UpdatePlayerList();
     }
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
@@ -53,35 +32,17 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     }
     void UpdatePlayerList()
     {
+        roomNameText.text = PhotonNetwork.CurrentRoom.Name;
+
         foreach(GameObject item in playerList)
         {
             Destroy(item);
         }
         playerList.Clear();
 
-        if (!PhotonNetwork.InRoom) return;
-
-        Player masterClient = null;
-
         foreach(Player player in PhotonNetwork.PlayerList)
         {
-            if(player.IsMasterClient)
-            {
-                masterClient = player;
-                break;
-            }
-        }
-        if(masterClient != null)
-        {
-            InstantiatePlayerListItem(masterClient);
-        }
-
-        foreach (Player player in PhotonNetwork.PlayerList)
-        {
-            if (!player.IsMasterClient)
-            {
-                InstantiatePlayerListItem(player);
-            }
+            InstantiatePlayerListItem(player);
         }
     }
     void InstantiatePlayerListItem(Player player)
