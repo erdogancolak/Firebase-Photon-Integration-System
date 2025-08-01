@@ -1,7 +1,6 @@
 using UnityEngine;
 using TMPro;
 using Photon.Pun;
-using NUnit.Framework;
 using System.Collections.Generic;
 using Photon.Realtime;
 using UnityEngine.SceneManagement;
@@ -16,9 +15,14 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     [SerializeField] private GameObject playerListItemPrefab;
     private List<GameObject> playerList = new List<GameObject>();
 
+    private bool isLeavingManually = false;
+
     void Start()
     {
         UpdatePlayerList();
+
+        GameStateManager.LastSceneName = "LobbyScene";
+        GameStateManager.LastRoomName = PhotonNetwork.CurrentRoom.Name;
     }
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
@@ -32,7 +36,8 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     }
     void UpdatePlayerList()
     {
-        roomNameText.text = PhotonNetwork.CurrentRoom.Name;
+        if (PhotonNetwork.CurrentRoom != null)
+            roomNameText.text = PhotonNetwork.CurrentRoom.Name;
 
         foreach(GameObject item in playerList)
         {
@@ -63,13 +68,20 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     }
     public void LeaveLobby()
     {
-        Debug.Log("Lobiden Ayrýlýnýyor!");
+        Debug.Log("Lobiden Manuel olarak Ayrýlýnýyor!");
+
+        isLeavingManually = true;
         PhotonNetwork.LeaveRoom();
     }
     public override void OnLeftRoom()
     {
-        Debug.Log("Odadan baþarýyla ayrýlýndý!");
+        if (isLeavingManually)
+        {
+            Debug.Log("Odadan baþarýyla manuel olarak ayrýlýndý! ClientScene yükleniyor.");
 
-        SceneManager.LoadScene("ClientScene");
+            isLeavingManually = false;
+
+            SceneManager.LoadScene("ClientScene");
+        }
     }
 }

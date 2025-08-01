@@ -8,6 +8,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using WebSocketSharp;
 
 public class LoadingManager : MonoBehaviourPunCallbacks
 {
@@ -18,51 +19,14 @@ public class LoadingManager : MonoBehaviourPunCallbacks
     [Header("Loading Settings")]
     [SerializeField] private float fakeLoadSpeed;
 
-    [Header("Connectivity")]
-    [SerializeField] private GameObject noInternetPanel;
-    [SerializeField] private Button retryButton;
-    [SerializeField] private Button quitButton;
-
-    [Header("Error Circle Defender")]
-    public static int connectionRetries = 0;
-    private const int MAX_RETRIES = 3;
     private bool isPhotonConnected;
 
     void Start()
     {
         if (loadingSlider != null)
             loadingSlider.value = 0;
-        if(noInternetPanel != null)
-            noInternetPanel.SetActive(false);
-        if (retryButton != null)
-            retryButton.onClick.AddListener(RetryConnection);
-        if (quitButton != null)
-            quitButton.onClick.AddListener(QuitApplication);
-
         
-        InitiateLoading();
-    }
-   
-    public void InitiateLoading()
-    {
-        if(connectionRetries >= MAX_RETRIES)
-        {
-            Debug.Log("Maksimum deneme sayýsýna ulaþýldý. Sunucuya baðlanýlamýyor.");
-
-            if (noInternetPanel != null) 
-                noInternetPanel.SetActive(true);
-
-            Application.Quit();
-        }
-        if (Application.internetReachability == NetworkReachability.NotReachable)
-        {
-            Debug.LogError("Ýnternet baðlantýsý bulunamadý.");
-            if (noInternetPanel != null)
-                noInternetPanel.SetActive(true);
-        }
-        if (noInternetPanel != null)
-            noInternetPanel.SetActive(false);
-
+        
         StartCoroutine(LoadGameSequence());
     }
 
@@ -90,18 +54,39 @@ public class LoadingManager : MonoBehaviourPunCallbacks
 
         yield return StartCoroutine(UpdateSlider(0.8f));
 
-        string sceneToLoad = PlayerPrefs.GetInt("IsLoggedIn", 0) == 1 ? "ClientScene" : "LoginScene";
+        string sceneToLoad;
+        string roomToRejoin = GameStateManager.LastRoomName;
+
+        if(!string.IsNullOrEmpty(roomToRejoin))
+        {
+            Debug.Log($"Oyuncu bir odadan düþmüþ. Odaya tekrar giriliyor: {roomToRejoin}");
+            PhotonNetwork.RejoinRoom(roomToRejoin);
+
+            yield break;
+        }
+        
+        if(PlayerPrefs.GetInt("IsLoggedIn", 0) == 0)
+        {
+            sceneToLoad = "LoginScene";
+            Debug.Log("Giriþ yapýlmamýþ. LoginScene yükleniyor...");
+        }
+        else
+        {
+            sceneToLoad = GameStateManager.LastSceneName;
+            Debug.Log($"Giriþ yapýlmýþ. Son bilinen sahneye yönlendiriliyor: {sceneToLoad}");
+        }
+
         AsyncOperation operation = SceneManager.LoadSceneAsync(sceneToLoad);
         operation.allowSceneActivation = false;
 
-        while(operation.progress < 0.9f)
+        while (operation.progress < 0.9f)
         {
-            float progress = Mathf.Clamp01(operation.progress / .9f) * .2f;
-            loadingSlider.value = progress;
+            float progress = 0.8f + (Mathf.Clamp01(operation.progress / 0.9f) * 0.2f);
+            if (loadingSlider != null) loadingSlider.value = progress;
             yield return null;
         }
-        loadingSlider.value = 1f;
 
+        if (loadingSlider != null) loadingSlider.value = 1f;
         operation.allowSceneActivation = true;
     }
 
@@ -163,25 +148,16 @@ public class LoadingManager : MonoBehaviourPunCallbacks
         Debug.Log("LoadingManager: Master sunucusuna baþarýyla baðlanýldý!");
         isPhotonConnected = true;
 
-        connectionRetries = 0;
     }
     public override void OnDisconnected(DisconnectCause cause)
     {
         Debug.LogError("Baðlantý koptu: " + cause);
-
-        connectionRetries++;
-
-        if (noInternetPanel != null) noInternetPanel.SetActive(true);
     }
 
     public void RetryConnection()
     {
         Debug.Log("Baðlantý yeniden deneniyor...");
 
-        if (noInternetPanel != null) 
-            noInternetPanel.SetActive(false);
-
-        connectionRetries = 0;
         StartCoroutine(LoadGameSequence());
     }
 
