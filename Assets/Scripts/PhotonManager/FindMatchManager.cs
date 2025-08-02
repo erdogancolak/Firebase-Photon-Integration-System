@@ -61,7 +61,7 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
             Debug.LogError("Maç aranamýyor, sunucu baðlantýsý yok! Yeniden baðlanýlýyor...");
             isConnecting = true;
 
-            playButton.gameObject.SetActive(false);
+            playButton.interactable = false;
             findMatchPanel.SetActive(true);
             findMatchStatusText.text = "Sunucuya Baðlanýlýyor...";
             findMatchTimerText.text = "";
@@ -71,7 +71,7 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
         }
         isSearching = true;
 
-        playButton.gameObject.SetActive(false);
+        playButton.interactable = false;
         findMatchPanel.SetActive(true);
         findMatchStatusText.text = "Oyun Aranýyor...";
 
@@ -102,7 +102,7 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
         isSearching = false;
         Debug.Log("Maç arama iptal edildi!");
 
-        playButton.gameObject.SetActive(true);
+        playButton.interactable = true;
         findMatchPanel.SetActive(false);
 
         if(PhotonNetwork.InRoom)
@@ -157,7 +157,7 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
 
         if(findMatchPanel.activeSelf)
         {
-            playButton.gameObject.SetActive(true);
+            playButton.interactable = true;
             findMatchPanel.SetActive(false);
         }
     }
@@ -177,7 +177,7 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
 
         if(findMatchPanel.activeSelf)
         {
-            playButton.gameObject.SetActive(true);
+            playButton.interactable = true;
             findMatchPanel.SetActive(false);
         }
         playButton.interactable = false;

@@ -71,17 +71,27 @@ public class RoomManager : MonoBehaviourPunCallbacks
     {
         GameObject listItem = Instantiate(playerListItemPrefab, playerListContainer);
 
-        TMP_Text textComponent = listItem.GetComponent<TMP_Text>();
+        //TMP_Text textComponent = listItem.GetComponent<TMP_Text>();
+        TMP_Text nicknameText = listItem.transform.Find("NicknameText").GetComponent<TMP_Text>();
+        TMP_Text eloText = listItem.transform.Find("EloText").GetComponent<TMP_Text>();
         if (player.IsMasterClient)
         {
-            textComponent.text = player.NickName + " (Kurucu)";
-            textComponent.color = Color.yellow;
+            nicknameText.text = player.NickName + " (Kurucu)";
+            nicknameText.color = Color.yellow;
         }
         else
         {
-            textComponent.text = player.NickName;
+            nicknameText.text = player.NickName;
         }
-        playerList.Add(listItem);
+        if(player.CustomProperties.TryGetValue("elo",out object eloValue))
+        {
+            eloText.text = ($"{eloValue}");
+        }
+        else
+        {
+            eloText.text = "?";
+        }
+            playerList.Add(listItem);
     }
     public void ReconnectAndRejoin()
     {

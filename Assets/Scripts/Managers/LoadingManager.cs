@@ -4,15 +4,17 @@ using Firebase.Firestore;
 using Photon.Pun;
 using Photon.Realtime;
 using System.Collections;
-using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using ExitGames.Client.Photon;
 
 public class LoadingManager : MonoBehaviourPunCallbacks
 {
     public static LoadingManager Instance { get; private set; }
+
     [SerializeField] private string gameVersion = "1.0";
+
     [Header("UI References")]
     [SerializeField] private Slider loadingSlider;
 
@@ -128,10 +130,13 @@ public class LoadingManager : MonoBehaviourPunCallbacks
             if (task.IsCompleted && !task.IsFaulted && task.Result.Exists)
             {
                 var userData = task.Result.ToDictionary();
+                int elo = System.Convert.ToInt32(userData["eloPoints"]);
+
                 UserDataManager.instance.setUserData(
                     userData["nickname"].ToString(),
                     userData["email"].ToString(),
-                    user.UserId);
+                    user.UserId,
+                    elo);
             }
             isFetchComplete = true;
         });
@@ -160,6 +165,7 @@ public class LoadingManager : MonoBehaviourPunCallbacks
 
         if(PhotonNetwork.IsConnected)
         {
+            SetPlayerEloProperty();
             PhotonNetwork.JoinLobby();
         }
         else
@@ -168,9 +174,22 @@ public class LoadingManager : MonoBehaviourPunCallbacks
             PhotonNetwork.ConnectUsingSettings();
         }
     }
+
+    void SetPlayerEloProperty()
+    {
+        if (UserDataManager.instance != null && UserDataManager.instance.isDataLoaded)
+        {
+            var customProperties = new ExitGames.Client.Photon.Hashtable();
+            customProperties["elo"] = UserDataManager.instance.EloPoints;
+            PhotonNetwork.LocalPlayer.SetCustomProperties(customProperties);
+            Debug.Log($"Oyuncunun Elo'su ({UserDataManager.instance.EloPoints}) aða bildirildi!");
+        }
+    }
     public override void OnConnectedToMaster()
     {
         Debug.Log("LoadingManager: Master sunucusuna baþarýyla baðlanýldý!");
+
+        SetPlayerEloProperty();
         PhotonNetwork.JoinLobby();
     }
     public override void OnJoinedLobby()

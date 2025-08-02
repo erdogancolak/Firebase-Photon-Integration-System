@@ -13,6 +13,7 @@ public class UserDataManager : MonoBehaviour
     public string UserNickname { get; private set; }
     public string UserEmail { get; private set; }
     public string UserID { get; private set; }
+    public int EloPoints { get; private set; }
 
     public bool isDataLoaded { get; private set; }
     private void Awake()
@@ -29,11 +30,12 @@ public class UserDataManager : MonoBehaviour
         }
     }
 
-    public void setUserData(string nickname,string email,string userId)
+    public void setUserData(string nickname,string email,string userId,int eloPoints)
     {
         UserNickname = nickname;
         UserEmail = email;
         UserID = userId;
+        EloPoints = eloPoints;
         isDataLoaded = true;
     }
     public void SignOut()
@@ -65,6 +67,7 @@ public class UserDataManager : MonoBehaviour
         this.UserNickname = null;
         this.UserEmail = null;
         this.UserID = null;
+        this.EloPoints = 0;
         this.isDataLoaded = false;
         Debug.Log("UserDataManager verileri sýfýrlandý.");
 
@@ -73,7 +76,6 @@ public class UserDataManager : MonoBehaviour
         Debug.Log("GameStateManager durumu sýfýrlandý.");
  
         yield return new WaitForSeconds(0.5f);
-
         SceneManager.LoadScene("LoginScene");
     }
 }

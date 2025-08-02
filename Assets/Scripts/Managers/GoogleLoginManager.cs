@@ -94,7 +94,10 @@ public class GoogleLoginManager : MonoBehaviour
                 Debug.Log($"Hoþ geldin {snapshot.GetValue<string>("nickname")}! Oyun sahnesi yükleniyor...");
 
                 var userData = snapshot.ToDictionary();
-                UserDataManager.instance.setUserData(userData["nickname"].ToString(), userData["email"].ToString(), newUser.UserId);
+
+                int elo = System.Convert.ToInt32(userData["eloPoints"]);
+
+                UserDataManager.instance.setUserData(userData["nickname"].ToString(), userData["email"].ToString(), newUser.UserId,elo);
 
                 PlayerPrefs.SetInt("IsLoggedIn", 1);
                 PlayerPrefs.Save();
@@ -151,6 +154,7 @@ public class GoogleLoginManager : MonoBehaviour
         {
             {"email" , userToSave.Email},
             {"nickname" , nickname },
+            {"eloPoints",0 },
             {"created_at", FieldValue.ServerTimestamp },
             {"device_language",Application.systemLanguage.ToString() },
             {"country_code",RegionInfo.CurrentRegion.TwoLetterISORegionName },
@@ -162,7 +166,7 @@ public class GoogleLoginManager : MonoBehaviour
         Debug.Log("Nickname baþarýyla kaydedildi! Oyun sahnesi yükleniyor...");
         nicknamePanel.SetActive(false);
 
-        UserDataManager.instance.setUserData(nickname, userToSave.Email, userToSave.UserId);
+        UserDataManager.instance.setUserData(nickname, userToSave.Email, userToSave.UserId,0);
 
         PlayerPrefs.SetInt("IsLoggedIn", 1);
         PlayerPrefs.Save();

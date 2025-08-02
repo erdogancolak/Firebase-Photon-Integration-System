@@ -27,7 +27,7 @@ public class LobbyChatManager : MonoBehaviourPunCallbacks
         }
 
         messageInputField.text = "";
-        messageInputField.ActivateInputField();
+        messageInputField.DeactivateInputField();
     }
     public void SaveMessageForFirestore(string messageText)
     {
@@ -84,7 +84,14 @@ public class LobbyChatManager : MonoBehaviourPunCallbacks
 
     IEnumerator ScrollToBottom()
     {
-        yield return new WaitForEndOfFrame();
+        yield return null;
+        Canvas.ForceUpdateCanvases();
+
+        LayoutRebuilder.ForceRebuildLayoutImmediate(chatScroolView.content);
+
+        chatScroolView.verticalNormalizedPosition = 0f;
+
+        yield return null;
         chatScroolView.verticalNormalizedPosition = 0f;
     }
 }
