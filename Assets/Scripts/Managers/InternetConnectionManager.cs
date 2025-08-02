@@ -1,7 +1,9 @@
 using Photon.Pun;
 using Photon.Realtime;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 public class InternetConnectionManager : MonoBehaviourPunCallbacks
 {
@@ -11,8 +13,8 @@ public class InternetConnectionManager : MonoBehaviourPunCallbacks
     [SerializeField] private GameObject noInternetPanel;
     private GameObject activePanelInstance;
 
-    private static string lastSceneBeforeDisconnect;
-    private static string lastRoomName;
+    [Header("Connection Settings")]
+    [SerializeField] private float checkInterval;
 
     private void Awake()
     {
@@ -26,10 +28,19 @@ public class InternetConnectionManager : MonoBehaviourPunCallbacks
             Destroy(gameObject);
         }
     }
-    
-    private void Update()
+    private void Start()
     {
-        CheckInternetConnection();
+        StartCoroutine(CheckInternetPeriodicallyCoroutine());
+    }
+
+    IEnumerator CheckInternetPeriodicallyCoroutine()
+    {
+        while (true)
+        {
+            CheckInternetConnection();
+
+            yield return new WaitForSeconds(checkInterval);
+        }
     }
 
     private void CheckInternetConnection()
@@ -47,6 +58,8 @@ public class InternetConnectionManager : MonoBehaviourPunCallbacks
     {
         if (noInternetPanel == null) return;
 
+        GameStateManager.IsNoInternetPanelActive = true;
+
         activePanelInstance = Instantiate(noInternetPanel);
 
         Canvas sceneCanvas = FindAnyObjectByType<Canvas>();
@@ -59,10 +72,11 @@ public class InternetConnectionManager : MonoBehaviourPunCallbacks
         {
             Debug.Log("Canvas Bulunmadý!");
             Destroy(activePanelInstance);
+            return;
         }
 
-        var retryButton = activePanelInstance.transform.Find("RetryButton").GetComponent<UnityEngine.UI.Button>();
-        var quitButton = activePanelInstance.transform.Find("QuitButton").GetComponent<UnityEngine.UI.Button>();
+        var retryButton = activePanelInstance.transform.Find("RetryButton")?.GetComponent<Button>();
+        var quitButton = activePanelInstance.transform.Find("QuitButton")?.GetComponent<Button>();
 
         if (retryButton != null)
             retryButton.onClick.AddListener(RetryButton);
@@ -71,13 +85,40 @@ public class InternetConnectionManager : MonoBehaviourPunCallbacks
     }
     public void RetryButton()
     {
-        Debug.Log("Tekrar deneme butonuna basýldý. Panel kapatýlýyor.");
+        if(Application.internetReachability != NetworkReachability.NotReachable)
+        {
+            Debug.Log("Ýnternet baðlantýsý geri geldi. Yeniden baðlanýlýyor...");
 
-        Destroy(activePanelInstance);
-
-        activePanelInstance = null;
-
-        SceneManager.LoadScene("LoadingScene");
+            if (activePanelInstance != null)
+            {
+                Destroy(activePanelInstance);
+                activePanelInstance = null;
+            }
+            GameStateManager.IsNoInternetPanelActive = false;
+            if (SceneManager.GetActiveScene().name == "LoadingScene" && LoadingManager.Instance != null)
+            {
+                Debug.Log("LoadingScene aktif, yükleme süreci yeniden baþlatýlýyor.");
+                LoadingManager.Instance.RestartLoadSequence();
+            }
+            else
+            {
+                if (RoomManager.instance != null)
+                {
+                    RoomManager.instance.ReconnectAndRejoin();
+                }
+                else
+                {
+                    if (!PhotonNetwork.IsConnected)
+                    {
+                        PhotonNetwork.ConnectUsingSettings();
+                    }
+                }
+            }
+        }
+        else
+        {
+            Debug.LogWarning("Hala internet baðlantýsý yok. Tekrar denenemedi.");
+        }
     }
     public void QuitButton()
     {

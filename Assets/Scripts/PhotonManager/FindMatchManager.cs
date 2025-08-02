@@ -22,6 +22,8 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
     private float timeAccumulator = 0f;    
     private int displaySeconds = 0;
 
+    private bool isConnecting = false;
+
     void Start()
     {
         StartCoroutine(EnsureConnectedAndReady());
@@ -39,7 +41,11 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
         while(!PhotonNetwork.IsConnectedAndReady)
         {
             Debug.Log("ClientScene: Master sunucusuna durumun güncellenmesi bekleniyor...");
-            yield return null;
+            if(!PhotonNetwork.IsConnected)
+            {
+                PhotonNetwork.ConnectUsingSettings();
+            }
+            yield return new WaitForSeconds(1f);
         }
 
         Debug.Log("ClientScene: Photon baðlantýsý hazýr. Nickname: " + PhotonNetwork.NickName);
@@ -48,17 +54,27 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
 
     public void FindMatch()
     {
-        if (!PhotonNetwork.IsConnectedAndReady)
+        if (isConnecting || isSearching) return;
+
+        if(!PhotonNetwork.IsConnectedAndReady)
         {
-            Debug.LogError("Maç aranamýyor, sunucu baðlantýsý yok!");
+            Debug.LogError("Maç aranamýyor, sunucu baðlantýsý yok! Yeniden baðlanýlýyor...");
+            isConnecting = true;
+
+            playButton.gameObject.SetActive(false);
+            findMatchPanel.SetActive(true);
+            findMatchStatusText.text = "Sunucuya Baðlanýlýyor...";
+            findMatchTimerText.text = "";
+
+            PhotonNetwork.ConnectUsingSettings();
             return;
         }
+        isSearching = true;
 
         playButton.gameObject.SetActive(false);
         findMatchPanel.SetActive(true);
-        findMatchStatusText.text = "Oyun Araniyor...";
+        findMatchStatusText.text = "Oyun Aranýyor...";
 
-        isSearching = true;
         displaySeconds = 0;
         timeAccumulator = 0f;
         findMatchTimerText.text = "0";
@@ -94,6 +110,24 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
             PhotonNetwork.LeaveRoom();
         }
     }
+    public override void OnConnectedToMaster()
+    {
+        Debug.Log("Master sunucusuna baþarýyla baðlanýldý!");
+        PhotonNetwork.JoinLobby();
+    }
+    public override void OnJoinedLobby()
+    {
+        Debug.Log("Lobiye baþarýyla girildi.");
+        playButton.interactable = true; 
+
+        if (isConnecting)
+        {
+            isConnecting = false;
+            Debug.Log("Yeniden baðlanma baþarýlý! Maç arama yeniden baþlatýlýyor...");
+            FindMatch(); 
+        }
+    }
+
 
     public override void OnJoinRandomFailed(short returnCode,string message)
     {
@@ -130,14 +164,25 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
 
     public override void OnDisconnected(DisconnectCause cause)
     {
+        if(GameStateManager.IsSigningOut)
+        {
+            Debug.Log("Kasýtlý çýkýþ yapýldý, otomatik yeniden baðlanma pasif.");
+            return;
+        }
+
         Debug.Log("Sunucu Baðlantýsý Kesildi! " + cause);
 
-        if (findMatchPanel.activeSelf)
+        isConnecting = false;
+        isSearching = false;
+
+        if(findMatchPanel.activeSelf)
         {
             playButton.gameObject.SetActive(true);
             findMatchPanel.SetActive(false);
         }
         playButton.interactable = false;
+
+        StartCoroutine(EnsureConnectedAndReady());
     }
     void SearchTime()
     {

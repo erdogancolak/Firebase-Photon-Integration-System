@@ -8,10 +8,10 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using WebSocketSharp;
 
 public class LoadingManager : MonoBehaviourPunCallbacks
 {
+    public static LoadingManager Instance { get; private set; }
     [SerializeField] private string gameVersion = "1.0";
     [Header("UI References")]
     [SerializeField] private Slider loadingSlider;
@@ -19,7 +19,18 @@ public class LoadingManager : MonoBehaviourPunCallbacks
     [Header("Loading Settings")]
     [SerializeField] private float fakeLoadSpeed;
 
-    private bool isPhotonConnected;
+    private bool isReadyToProceed = false;
+    private void Awake()
+    {
+        if (Instance != null && Instance != this)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            Instance = this;
+        }
+    }
 
     void Start()
     {
@@ -34,7 +45,7 @@ public class LoadingManager : MonoBehaviourPunCallbacks
     {
         if(PlayerPrefs.GetInt("IsLoggedIn", 0) == 1)
         {
-            if(UserDataManager.instance != null || !UserDataManager.instance.isDataLoaded)
+            if(UserDataManager.instance != null && !UserDataManager.instance.isDataLoaded)
             {
                 yield return StartCoroutine(FetchUserDataCoroutine());
             }
@@ -50,7 +61,7 @@ public class LoadingManager : MonoBehaviourPunCallbacks
 
         ConnectToPhoton();
 
-        yield return new WaitUntil(() => isPhotonConnected);
+        yield return new WaitUntil(() => isReadyToProceed);
 
         yield return StartCoroutine(UpdateSlider(0.8f));
 
@@ -72,7 +83,7 @@ public class LoadingManager : MonoBehaviourPunCallbacks
         }
         else
         {
-            sceneToLoad = GameStateManager.LastSceneName;
+            sceneToLoad = GameStateManager.LastSceneName ?? "ClientScene";
             Debug.Log($"Giriþ yapýlmýþ. Son bilinen sahneye yönlendiriliyor: {sceneToLoad}");
         }
 
@@ -88,6 +99,17 @@ public class LoadingManager : MonoBehaviourPunCallbacks
 
         if (loadingSlider != null) loadingSlider.value = 1f;
         operation.allowSceneActivation = true;
+    }
+    public void RestartLoadSequence()
+    {
+        Debug.Log("Yükleme süreci yeniden baþlatýlýyor...");
+
+        StopAllCoroutines();
+
+        if (loadingSlider != null)
+            loadingSlider.value = 0;
+
+        StartCoroutine(LoadGameSequence());
     }
 
     IEnumerator FetchUserDataCoroutine()
@@ -133,38 +155,45 @@ public class LoadingManager : MonoBehaviourPunCallbacks
 
     void ConnectToPhoton()
     {
+        isReadyToProceed = false;
+        PhotonNetwork.AutomaticallySyncScene = true;
+
         if(PhotonNetwork.IsConnected)
         {
-            isPhotonConnected = true;
-            return;
+            PhotonNetwork.JoinLobby();
         }
-        
-        PhotonNetwork.GameVersion = gameVersion;
-        PhotonNetwork.AutomaticallySyncScene = true;
-        PhotonNetwork.ConnectUsingSettings();
+        else
+        {
+            PhotonNetwork.GameVersion = gameVersion;
+            PhotonNetwork.ConnectUsingSettings();
+        }
     }
     public override void OnConnectedToMaster()
     {
         Debug.Log("LoadingManager: Master sunucusuna baþarýyla baðlanýldý!");
-        isPhotonConnected = true;
-
+        PhotonNetwork.JoinLobby();
+    }
+    public override void OnJoinedLobby()
+    {
+        Debug.Log("Lobiye girildi! Yükleme devam edebilir.");
+        isReadyToProceed = true;
     }
     public override void OnDisconnected(DisconnectCause cause)
     {
         Debug.LogError("Baðlantý koptu: " + cause);
     }
-
-    public void RetryConnection()
+    
+    public override void OnJoinedRoom()
     {
-        Debug.Log("Baðlantý yeniden deneniyor...");
+        Debug.Log("Odaya baþarýyla (yeniden) girildi. Oyun sahnesi yükleniyor...");
 
-        StartCoroutine(LoadGameSequence());
+        SceneManager.LoadScene("LobbyScene");
     }
 
-    public void QuitApplication()
+    public override void OnJoinRoomFailed(short returnCode, string message)
     {
-        Debug.Log("Uygulamadan çýkýlýyor...");
-
-        Application.Quit();
+        Debug.LogError($"Odaya yeniden girilemedi: {message}. Ana menüye gidiliyor.");
+        GameStateManager.LastRoomName = null; 
+        SceneManager.LoadScene("ClientScene");
     }
 }

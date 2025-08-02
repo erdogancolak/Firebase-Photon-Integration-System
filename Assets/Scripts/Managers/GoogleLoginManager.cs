@@ -99,6 +99,8 @@ public class GoogleLoginManager : MonoBehaviour
                 PlayerPrefs.SetInt("IsLoggedIn", 1);
                 PlayerPrefs.Save();
 
+                GameStateManager.IsSigningOut = false;
+
                 SceneManager.LoadScene("LoadingScene");
             }
             else
@@ -164,6 +166,8 @@ public class GoogleLoginManager : MonoBehaviour
 
         PlayerPrefs.SetInt("IsLoggedIn", 1);
         PlayerPrefs.Save();
+
+        GameStateManager.IsSigningOut = false;
 
         SceneManager.LoadScene("LoadingScene");
     }

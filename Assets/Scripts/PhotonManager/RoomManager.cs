@@ -5,8 +5,9 @@ using System.Collections.Generic;
 using Photon.Realtime;
 using UnityEngine.SceneManagement;
 
-public class LobbyManager : MonoBehaviourPunCallbacks
+public class RoomManager : MonoBehaviourPunCallbacks
 {
+    public static RoomManager instance {  get; private set; }
     [Header("UI References")]
     [SerializeField] private TMP_Text roomNameText;
 
@@ -16,13 +17,29 @@ public class LobbyManager : MonoBehaviourPunCallbacks
     private List<GameObject> playerList = new List<GameObject>();
 
     private bool isLeavingManually = false;
+    private string lastKnownRoomName;
 
+    private void Awake()
+    {
+        if (instance != null && instance != this)
+        {
+            Destroy(gameObject);
+        }
+        else
+        {
+            instance = this;
+        }
+    }
     void Start()
     {
         UpdatePlayerList();
 
-        GameStateManager.LastSceneName = "LobbyScene";
-        GameStateManager.LastRoomName = PhotonNetwork.CurrentRoom.Name;
+        GameStateManager.LastSceneName = SceneManager.GetActiveScene().name;
+        if (PhotonNetwork.CurrentRoom != null)
+        {
+            lastKnownRoomName = PhotonNetwork.CurrentRoom.Name;
+            GameStateManager.LastRoomName = lastKnownRoomName;
+        }
     }
     public override void OnPlayerEnteredRoom(Player newPlayer)
     {
@@ -66,7 +83,39 @@ public class LobbyManager : MonoBehaviourPunCallbacks
         }
         playerList.Add(listItem);
     }
-    public void LeaveLobby()
+    public void ReconnectAndRejoin()
+    {
+        Debug.Log("Yeniden baðlanýlýyor ve odaya dönülmeye çalýþýlýyor...");
+        if(!PhotonNetwork.IsConnected)
+        {
+            PhotonNetwork.ConnectUsingSettings();
+        }
+    }
+    public override void OnConnectedToMaster()
+    {
+        if (!string.IsNullOrEmpty(lastKnownRoomName))
+        {
+            Debug.Log($"Master'a baðlandý. Odaya tekrar giriliyor: {lastKnownRoomName}");
+            PhotonNetwork.RejoinRoom(lastKnownRoomName);
+        }
+        else
+        {
+            SceneManager.LoadScene("ClientScene");
+        }
+    }
+    public override void OnJoinedRoom()
+    {
+        Debug.Log("Odaya baþarýyla girildi/geri dönüldü.");
+
+        UpdatePlayerList(); 
+    }
+    public override void OnJoinRoomFailed(short returnCode, string message)
+    {
+        Debug.LogError($"Odaya geri dönülemedi: {message}. Ana menüye yönlendiriliyor.");
+
+        SceneManager.LoadScene("ClientScene");
+    }
+    public void LeaveRoomButton()
     {
         Debug.Log("Lobiden Manuel olarak Ayrýlýnýyor!");
 
@@ -82,6 +131,17 @@ public class LobbyManager : MonoBehaviourPunCallbacks
             isLeavingManually = false;
 
             SceneManager.LoadScene("ClientScene");
+        }
+    }
+    public override void OnDisconnected(DisconnectCause cause)
+    {
+        if (!isLeavingManually && !GameStateManager.IsNoInternetPanelActive)
+        {
+            Debug.LogError("Beklenmedik bir þekilde baðlantý koptu! Sebep: " + cause);
+        }
+        else if (GameStateManager.IsNoInternetPanelActive)
+        {
+            Debug.LogWarning("Ýnternet baðlantýsý nedeniyle Photon baðlantýsý koptu. Panel aktif.");
         }
     }
 }

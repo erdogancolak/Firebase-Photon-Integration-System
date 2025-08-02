@@ -1,6 +1,8 @@
 using Firebase.Auth;
 using Google;
 using Photon.Pun;
+using System.Threading.Tasks;
+using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -36,16 +38,20 @@ public class UserDataManager : MonoBehaviour
     }
     public void SignOut()
     {
+        StartCoroutine(SignOutRoutine());
+    }
+    private IEnumerator SignOutRoutine()
+    {
         Debug.Log("Çýkýþ yapma iþlemi baþlatýldý...");
 
-        FirebaseAuth.DefaultInstance.SignOut();
-        Debug.Log("Firebase oturumu kapatýldý.");
-
-        if(GoogleSignIn.DefaultInstance != null)
+        if (GoogleSignIn.DefaultInstance != null)
         {
             GoogleSignIn.DefaultInstance.SignOut();
             Debug.Log("Google oturumu kapatýldý.");
         }
+
+        FirebaseAuth.DefaultInstance.SignOut();
+        Debug.Log("Firebase oturumu kapatýldý.");
 
         if (PhotonNetwork.IsConnected)
         {
@@ -62,9 +68,11 @@ public class UserDataManager : MonoBehaviour
         this.isDataLoaded = false;
         Debug.Log("UserDataManager verileri sýfýrlandý.");
 
-        GameStateManager.LastSceneName = "ClientScene"; 
+        GameStateManager.LastSceneName = "ClientScene";
         GameStateManager.LastRoomName = null;
         Debug.Log("GameStateManager durumu sýfýrlandý.");
+ 
+        yield return new WaitForSeconds(0.5f);
 
         SceneManager.LoadScene("LoginScene");
     }

@@ -10,7 +10,9 @@ public class ClientManager : MonoBehaviour
 
     public void SignOutButton()
     {
-        if(UserDataManager.instance != null)
+        GameStateManager.IsSigningOut = true;
+
+        if (UserDataManager.instance != null)
         {
             UserDataManager.instance.SignOut();
         }
