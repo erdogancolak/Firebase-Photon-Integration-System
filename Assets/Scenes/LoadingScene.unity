@@ -660,6 +660,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   noInternetPanel: {fileID: 3514238472151853660, guid: ebb6282dcf7c1d74181313ceac8b0138, type: 3}
+  quitPanel: {fileID: 5555232126102954586, guid: 08ebdc91dca22944191385d958989c60, type: 3}
+  checkInterval: 1
 --- !u!4 &1069490220
 Transform:
   m_ObjectHideFlags: 0

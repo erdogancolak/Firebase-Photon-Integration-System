@@ -2,15 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using Firebase.Extensions;
 using Google;
-using System.Threading.Tasks;
 using UnityEngine;
 using TMPro;
 using Firebase.Auth;
 using Firebase.Firestore;
 using UnityEngine.UI;
-using UnityEngine.Networking;
 using UnityEngine.SceneManagement;
-using Unity.VisualScripting;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -97,7 +94,23 @@ public class GoogleLoginManager : MonoBehaviour
 
                 int elo = System.Convert.ToInt32(userData["eloPoints"]);
 
-                UserDataManager.instance.setUserData(userData["nickname"].ToString(), userData["email"].ToString(), newUser.UserId,elo);
+                int coins = 0;
+                if(userData.ContainsKey("coins"))
+                {
+                    coins = System.Convert.ToInt32(userData["coins"]);
+                }
+
+                List<string> ownedCharacters = snapshot.GetValue<List<string>>("ownedCharacterIDs") ?? new List<string>();
+                string selectedCharacter = snapshot.GetValue<string>("selectedCharacterID");
+
+                if (ownedCharacters.Count == 0 || string.IsNullOrEmpty(selectedCharacter))
+                {
+                    string defaultCharacterID = "civciv_01"; 
+                    ownedCharacters.Add(defaultCharacterID);
+                    selectedCharacter = defaultCharacterID;
+                }
+
+                UserDataManager.instance.setUserData(userData["nickname"].ToString(), userData["email"].ToString(), newUser.UserId,elo,coins,ownedCharacters,selectedCharacter);
 
                 PlayerPrefs.SetInt("IsLoggedIn", 1);
                 PlayerPrefs.Save();
@@ -147,14 +160,18 @@ public class GoogleLoginManager : MonoBehaviour
             return;
         }
 
-
         DocumentReference userDocRef = db.Collection("kullanicilar").Document(userToSave.UserId);
+
+        string defaultCharacterID = "civciv_01";
 
         var userData = new Dictionary<string, object>
         {
             {"email" , userToSave.Email},
             {"nickname" , nickname },
             {"eloPoints",0 },
+            {"coins", 100 },
+            {"ownedCharacterIDs", new List<string> { defaultCharacterID } },
+            {"selectedCharacterID", defaultCharacterID  },
             {"created_at", FieldValue.ServerTimestamp },
             {"device_language",Application.systemLanguage.ToString() },
             {"country_code",RegionInfo.CurrentRegion.TwoLetterISORegionName },
@@ -166,7 +183,7 @@ public class GoogleLoginManager : MonoBehaviour
         Debug.Log("Nickname baþarýyla kaydedildi! Oyun sahnesi yükleniyor...");
         nicknamePanel.SetActive(false);
 
-        UserDataManager.instance.setUserData(nickname, userToSave.Email, userToSave.UserId,0);
+        UserDataManager.instance.setUserData(nickname, userToSave.Email, userToSave.UserId,0,100, new List<string> { defaultCharacterID }, defaultCharacterID);
 
         PlayerPrefs.SetInt("IsLoggedIn", 1);
         PlayerPrefs.Save();

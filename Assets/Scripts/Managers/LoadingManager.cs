@@ -7,7 +7,8 @@ using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using ExitGames.Client.Photon;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 public class LoadingManager : MonoBehaviourPunCallbacks
 {
@@ -132,11 +133,33 @@ public class LoadingManager : MonoBehaviourPunCallbacks
                 var userData = task.Result.ToDictionary();
                 int elo = System.Convert.ToInt32(userData["eloPoints"]);
 
+                int coins = 0;
+                if (userData.ContainsKey("coins"))
+                {
+                    coins = System.Convert.ToInt32(userData["coins"]);
+                }
+
+                List<string> ownedCharacters = task.Result.GetValue<List<string>>("ownedCharacterIDs") ?? new List<string>();
+                string selectedCharacter = task.Result.GetValue<string>("selectedCharacterID");
+
+                if (ownedCharacters.Count == 0 || string.IsNullOrEmpty(selectedCharacter))
+                {
+                    string defaultCharacterID = "civciv_01"; 
+                    if (!ownedCharacters.Contains(defaultCharacterID))
+                    {
+                        ownedCharacters.Add(defaultCharacterID);
+                    }
+                    selectedCharacter = defaultCharacterID;
+                }
+
                 UserDataManager.instance.setUserData(
                     userData["nickname"].ToString(),
                     userData["email"].ToString(),
                     user.UserId,
-                    elo);
+                    elo,
+                    coins,
+                    ownedCharacters,
+                    selectedCharacter);
             }
             isFetchComplete = true;
         });

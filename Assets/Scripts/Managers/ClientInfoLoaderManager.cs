@@ -6,6 +6,7 @@ public class ClientInfoLoaderManager : MonoBehaviour
     [Header("UI References")]
     [SerializeField] private TMP_Text nicknameText;
     [SerializeField] private TMP_Text eloPointsText;
+    [SerializeField] private TMP_Text coinPointsText;
 
     void Start()
     {
@@ -18,6 +19,7 @@ public class ClientInfoLoaderManager : MonoBehaviour
             Debug.LogError("ClientInfoLoaderManager: UserDataManager boþ veya veri yüklenmemiþ!");
             nicknameText.text = "Hata!";
             eloPointsText.text = "?";
+            if(coinPointsText != null) coinPointsText.text = "?";
         }
     }
 
@@ -25,6 +27,11 @@ public class ClientInfoLoaderManager : MonoBehaviour
     {
         nicknameText.text = UserDataManager.instance.UserNickname;
         eloPointsText.text = $"{UserDataManager.instance.EloPoints}";
+
+        if(coinPointsText != null)
+        {
+            coinPointsText.text = $"{UserDataManager.instance.Coins}";
+        }
         Debug.Log("Nickname baþarýyla yazdýrýldý: " + UserDataManager.instance.UserNickname);
     }
 }

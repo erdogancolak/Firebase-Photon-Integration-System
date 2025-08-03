@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d148a8d4c36bbbb4f8d50c80d7ff4ff8, type: 3}
+  m_Name: Civciv
+  m_EditorClassIdentifier: 
+  characterID: civciv_01
+  characterName: Civciv
+  description: "Civciv Oyunun ba\u015F karakteridir"
+  priceInCoins: 100
+  shopIcon: {fileID: -1737005464, guid: a5e645d0b2507ac42807ef8e886f7d45, type: 3}
+  gamePrefab: {fileID: 5081684379524876839, guid: 7b75112191cca804db945d656d5638b1, type: 3}
+  isDefaultCharacter: 1
