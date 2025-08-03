@@ -133,7 +133,13 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
     {
         Debug.Log("Rastgele bir oda bulunamadý! Yeni bir oda kuruluyor!");
 
-        PhotonNetwork.CreateRoom(null, new RoomOptions { MaxPlayers = 4,IsVisible = true,IsOpen = true });
+        RoomOptions roomOptions = new RoomOptions();
+        roomOptions.MaxPlayers = 4;
+        roomOptions.IsVisible = true;
+        roomOptions.IsOpen = true;
+        roomOptions.PlayerTtl = 30000;
+
+        PhotonNetwork.CreateRoom(null, roomOptions);
     }
 
     public override void OnJoinedRoom()

@@ -15,7 +15,7 @@ MonoBehaviour:
   characterID: inek_01
   characterName: "\u0130nek"
   description: "\u0130nek Oyunun ba\u015F karakteridir"
-  priceInCoins: 100
+  priceInCoins: 150
   shopIcon: {fileID: -374776885, guid: a5e645d0b2507ac42807ef8e886f7d45, type: 3}
   gamePrefab: {fileID: 5081684379524876839, guid: 9634ae6bf809b2240a886d9367977dc0, type: 3}
   isDefaultCharacter: 0

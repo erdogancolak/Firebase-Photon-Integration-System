@@ -15,7 +15,7 @@ MonoBehaviour:
   characterID: civciv_01
   characterName: Civciv
   description: "Civciv Oyunun ba\u015F karakteridir"
-  priceInCoins: 100
+  priceInCoins: 0
   shopIcon: {fileID: -1737005464, guid: a5e645d0b2507ac42807ef8e886f7d45, type: 3}
   gamePrefab: {fileID: 5081684379524876839, guid: 7b75112191cca804db945d656d5638b1, type: 3}
   isDefaultCharacter: 1

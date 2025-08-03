@@ -1,4 +1,4 @@
-using TMPro;
+﻿using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,14 +13,18 @@ public class CharacterPreviewPanel : MonoBehaviour
     [SerializeField] private Button closeButton;
 
     private GameObject _currentPreviewObject;
+    private CharacterData currentCharacter;
+    private CharacterMarketManager currentMarketManager;
 
-    private void Start()
+    private void Awake()
     {
         closeButton.onClick.AddListener(ClosePanel);
         panelRoot.SetActive(false);
     }
-    public void DisplayCharacter(CharacterData data)
+    public void DisplayCharacter(CharacterData data,CharacterMarketManager marketManager)
     {
+        currentCharacter = data;
+        currentMarketManager = marketManager;
         panelRoot.SetActive(true);
 
         characterNameText.text = data.characterName;
@@ -33,23 +37,50 @@ public class CharacterPreviewPanel : MonoBehaviour
 
         _currentPreviewObject = Instantiate(data.gamePrefab, Vector3.zero, Quaternion.identity);
 
-        bool isOwned = false;
+        bool isOwned = UserDataManager.instance.OwnedCharacterIDs.Contains(data.characterID);
+        bool isSelected = data.characterID == UserDataManager.instance.SelectedCharacterID;
 
-        if (UserDataManager.instance != null)
+        if (isSelected) 
         {
-            isOwned = UserDataManager.instance.OwnedCharacterIDs.Contains(data.characterID);
+            actionButtonText.text = "✔";
+            actionButton.interactable = false;
         }
-
-        if (isOwned)
+        else if (isOwned)
         {
             actionButtonText.text = "Use";
+            actionButton.interactable = true;
         }
         else
         {
             actionButtonText.text = "Buy";
+            actionButton.interactable = (UserDataManager.instance != null && UserDataManager.instance.Coins >= data.priceInCoins);
         }
 
         actionButton.onClick.RemoveAllListeners();
+        actionButton.onClick.AddListener(OnActionButtonClicked);
+    }
+    private async void OnActionButtonClicked()
+    {
+        actionButton.interactable = false;
+
+        bool isOwned = UserDataManager.instance.OwnedCharacterIDs.Contains(currentCharacter.characterID);
+
+        if(isOwned)
+        {
+            Debug.Log($"{currentCharacter.characterName} seçiliyor...");
+            await UserDataManager.instance.SelectCharacter(currentCharacter.characterID);
+        }
+        else
+        {
+            Debug.Log($"{currentCharacter.characterName} satın alınıyor...");
+            bool success = await UserDataManager.instance.UnlockCharacter(currentCharacter);
+            if (success)
+            {
+                await UserDataManager.instance.SelectCharacter(currentCharacter.characterID);
+            }
+        }
+        currentMarketManager.GenerateCharacterList();
+        DisplayCharacter(currentCharacter, currentMarketManager);
     }
     public void ClosePanel()
     {

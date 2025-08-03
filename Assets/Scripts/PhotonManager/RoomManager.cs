@@ -18,6 +18,7 @@ public class RoomManager : MonoBehaviourPunCallbacks
 
     private bool isLeavingManually = false;
     private string lastKnownRoomName;
+    private bool hasTriedJoinRoomFallback = false;
 
     private void Awake()
     {
@@ -103,13 +104,16 @@ public class RoomManager : MonoBehaviourPunCallbacks
     }
     public override void OnConnectedToMaster()
     {
+        hasTriedJoinRoomFallback = false;
+
+        Debug.Log("Master'a baðlandý. Odaya tekrar girilmeye çalýþýlýyor...");
         if (!string.IsNullOrEmpty(lastKnownRoomName))
         {
-            Debug.Log($"Master'a baðlandý. Odaya tekrar giriliyor: {lastKnownRoomName}");
             PhotonNetwork.RejoinRoom(lastKnownRoomName);
         }
         else
         {
+            Debug.LogWarning("Geri dönülecek oda ismi bulunamadý. Ana menüye yönlendiriliyor.");
             SceneManager.LoadScene("ClientScene");
         }
     }
@@ -121,10 +125,29 @@ public class RoomManager : MonoBehaviourPunCallbacks
     }
     public override void OnJoinRoomFailed(short returnCode, string message)
     {
-        Debug.LogError($"Odaya geri dönülemedi: {message}. Ana menüye yönlendiriliyor.");
+        Debug.LogError($"Odaya geri dönülemedi (Rejoin). Hata: {message}");
 
-        SceneManager.LoadScene("ClientScene");
+        if (!hasTriedJoinRoomFallback)
+        {
+            Debug.Log("Rejoin baþarýsýz oldu, JoinRoom deneniyor...");
+            hasTriedJoinRoomFallback = true;
+            if (!string.IsNullOrEmpty(lastKnownRoomName))
+            {
+                PhotonNetwork.JoinRoom(lastKnownRoomName);
+            }
+            else
+            {
+                Debug.LogError("Oda ismi bilinmiyor. Yedek deneme yapýlamýyor. ClientScene'e dönülüyor.");
+                SceneManager.LoadScene("ClientScene");
+            }
+        }
+        else
+        {
+            Debug.LogError("JoinRoom denemesi de baþarýsýz oldu. ClientScene'e dönülüyor.");
+            SceneManager.LoadScene("ClientScene");
+        }
     }
+    
     public void LeaveRoomButton()
     {
         Debug.Log("Lobiden Manuel olarak Ayrýlýnýyor!");

@@ -92,9 +92,11 @@ public class UserDataManager : MonoBehaviour
         }
 
         SelectedCharacterID = characterID;
+
         DocumentReference userDocRef = FirebaseFirestore.DefaultInstance.Collection("kullanicilar").Document(UserID);
         var updates = new Dictionary<string, object> { { "selectedCharacterID", characterID } };
-        await userDocRef.UpdateAsync(updates);
+        await userDocRef.UpdateAsync(updates);  
+
         Debug.Log($"Karakter seçildi ve kaydedildi: {characterID}");
     }
     public async Task<bool> UnlockCharacter(CharacterData characterData)
@@ -107,6 +109,7 @@ public class UserDataManager : MonoBehaviour
         await UpdateCoins(-characterData.priceInCoins);
 
         OwnedCharacterIDs.Add(characterData.characterID);
+
         DocumentReference userDocRef = FirebaseFirestore.DefaultInstance.Collection("kullanicilar").Document(UserID);
         var updates = new Dictionary<string, object> { { "ownedCharacterIDs", OwnedCharacterIDs } };
         await userDocRef.UpdateAsync(updates);

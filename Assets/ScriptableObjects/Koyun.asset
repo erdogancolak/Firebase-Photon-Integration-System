@@ -15,7 +15,7 @@ MonoBehaviour:
   characterID: koyun_01
   characterName: Koyun
   description: "Koyun Oyunun ba\u015F karakteridir"
-  priceInCoins: 100
+  priceInCoins: 150
   shopIcon: {fileID: -1298529376, guid: a5e645d0b2507ac42807ef8e886f7d45, type: 3}
   gamePrefab: {fileID: 5081684379524876839, guid: 41bebd2ba5f73ea4db7964d659c2b2c7, type: 3}
   isDefaultCharacter: 0

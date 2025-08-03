@@ -15,8 +15,12 @@ public class CharacterMarketManager : MonoBehaviour
     {
         GenerateCharacterList();
     }
-    private void GenerateCharacterList()
+    public void GenerateCharacterList()
     {
+        foreach(Transform child in listContainer)
+        {
+            Destroy(child.gameObject);
+        }
         foreach(var character in allCharacters)
         {
             CharacterListItemUI itemInstance = Instantiate(listItemPrefab, listContainer);
@@ -26,6 +30,6 @@ public class CharacterMarketManager : MonoBehaviour
     }
     private void OnCharacterListItemClicked(CharacterData clickedCharacter)
     {
-        previewPanel.DisplayCharacter(clickedCharacter);
+        previewPanel.DisplayCharacter(clickedCharacter,this);
     }
 }
