@@ -101,11 +101,22 @@ public class UserDataManager : MonoBehaviour
     }
     public async Task<bool> UnlockCharacter(CharacterData characterData)
     {
-        if(!isDataLoaded || !OwnedCharacterIDs.Contains(characterData.characterID) || Coins < characterData.priceInCoins)
+        if (OwnedCharacterIDs.Contains(characterData.characterID))
         {
-            Debug.LogError("Bu karakter satýn alýnamaz!");
+            Debug.LogError("Bu karaktere zaten sahipsin!");
             return false;
         }
+        if (Coins < characterData.priceInCoins)
+        {
+            Debug.LogError("Yetersiz Bakiye! Gerekli: " + characterData.priceInCoins + ", Mevcut: " + Coins);
+            return false;
+        }
+        if (!isDataLoaded)
+        {
+            Debug.LogError("Kullanýcý verisi yüklenemedi, satýn alma iþlemi iptal edildi.");
+            return false;
+        }
+        
         await UpdateCoins(-characterData.priceInCoins);
 
         OwnedCharacterIDs.Add(characterData.characterID);
