@@ -35,73 +35,71 @@ public class LoadingManager : MonoBehaviourPunCallbacks
         }
     }
 
-    void Start()
+    async void Start()
     {
         if (loadingSlider != null)
             loadingSlider.value = 0;
-        
-        
-        StartCoroutine(LoadGameSequence());
+
+
+        await LoadGameSequence();
     }
 
-    IEnumerator LoadGameSequence()
+    async Task LoadGameSequence()
     {
+        string firebaseUserId = null;
+
         if(PlayerPrefs.GetInt("IsLoggedIn", 0) == 1)
         {
-            if(UserDataManager.instance != null && !UserDataManager.instance.isDataLoaded)
+            Debug.Log("Giriþ yapýlmýþ, Firebase kullanýcýsý bekleniyor...");
+
+            FirebaseUser user = await UserDataManager.instance.InitializeAndFetchUserAsync();
+
+            if (user != null && UserDataManager.instance.isDataLoaded)
             {
-                yield return StartCoroutine(FetchUserDataCoroutine());
+                firebaseUserId = UserDataManager.instance.UserID;
+                Debug.Log($"Kullanýcý verisi baþarýyla çekildi. UserID: {firebaseUserId}");
+            }
+            else
+            {
+                Debug.LogError("Kullanýcý verisi alýnamadý. Login ekranýna yönlendiriliyor.");
+                PlayerPrefs.DeleteKey("IsLoggedIn");
+                SceneManager.LoadScene("LoginScene");
+                return; 
             }
         }
-
-        yield return StartCoroutine(UpdateSlider(0.4f));
+        await UpdateSlider(0.4f);
 
         PhotonNetwork.NickName = UserDataManager.instance != null && UserDataManager.instance.isDataLoaded
        ? UserDataManager.instance.UserNickname
        : "Oyuncu" + Random.Range(1000, 9999);
 
        Debug.Log("Photon Sunucusuna Baðlanýlýyor... " + PhotonNetwork.NickName);
+        ConnectToPhoton(firebaseUserId);
 
-        ConnectToPhoton();
+        while (!isReadyToProceed)
+        {
+            await Task.Yield();
+        }
 
-        yield return new WaitUntil(() => isReadyToProceed);
+        await UpdateSlider(0.8f);
 
-        yield return StartCoroutine(UpdateSlider(0.8f));
-
-        string sceneToLoad;
         string roomToRejoin = GameStateManager.LastRoomName;
-
-        if(!string.IsNullOrEmpty(roomToRejoin))
+        if (!string.IsNullOrEmpty(roomToRejoin))
         {
             Debug.Log($"Oyuncu bir odadan düþmüþ. Odaya tekrar giriliyor: {roomToRejoin}");
             PhotonNetwork.RejoinRoom(roomToRejoin);
-
-            yield break;
-        }
-        
-        if(PlayerPrefs.GetInt("IsLoggedIn", 0) == 0)
-        {
-            sceneToLoad = "LoginScene";
-            Debug.Log("Giriþ yapýlmamýþ. LoginScene yükleniyor...");
-        }
-        else
-        {
-            sceneToLoad = GameStateManager.LastSceneName ?? "ClientScene";
-            Debug.Log($"Giriþ yapýlmýþ. Son bilinen sahneye yönlendiriliyor: {sceneToLoad}");
+            return;
         }
 
-        AsyncOperation operation = SceneManager.LoadSceneAsync(sceneToLoad);
-        operation.allowSceneActivation = false;
+        string sceneToLoad = (PlayerPrefs.GetInt("IsLoggedIn", 0) == 1)
+            ? (GameStateManager.LastSceneName ?? "ClientScene")
+            : "LoginScene";
 
-        while (operation.progress < 0.9f)
-        {
-            float progress = 0.8f + (Mathf.Clamp01(operation.progress / 0.9f) * 0.2f);
-            if (loadingSlider != null) loadingSlider.value = progress;
-            yield return null;
-        }
+        Debug.Log($"Sahne yükleniyor: {sceneToLoad}");
 
-        if (loadingSlider != null) loadingSlider.value = 1f;
-        operation.allowSceneActivation = true;
+        await UpdateSlider(1f);
+        Debug.Log($"Photon ile sahne yükleniyor: {sceneToLoad}");
+        PhotonNetwork.LoadLevel(sceneToLoad);
     }
     public void RestartLoadSequence()
     {
@@ -112,76 +110,26 @@ public class LoadingManager : MonoBehaviourPunCallbacks
         if (loadingSlider != null)
             loadingSlider.value = 0;
 
-        StartCoroutine(LoadGameSequence());
+        _ = LoadGameSequence();
     }
-
-    IEnumerator FetchUserDataCoroutine()
+    async Task UpdateSlider(float targetValue)
     {
-        FirebaseUser user = FirebaseAuth.DefaultInstance.CurrentUser;
-        if(user == null)
-        {
-            Debug.Log("Kullanýcý Bulunamadý!");
-            yield break;
-        }
+        if (loadingSlider == null) return;
 
-        bool isFetchComplete = false;
-        DocumentReference docRef = FirebaseFirestore.DefaultInstance.Collection("kullanicilar").Document(user.UserId);
-        docRef.GetSnapshotAsync().ContinueWithOnMainThread(task =>
-        {
-            if (task.IsCompleted && !task.IsFaulted && task.Result.Exists)
-            {
-                var userData = task.Result.ToDictionary();
-                int elo = System.Convert.ToInt32(userData["eloPoints"]);
-
-                int coins = 0;
-                if (userData.ContainsKey("coins"))
-                {
-                    coins = System.Convert.ToInt32(userData["coins"]);
-                }
-
-                List<string> ownedCharacters = task.Result.GetValue<List<string>>("ownedCharacterIDs") ?? new List<string>();
-                string selectedCharacter = task.Result.GetValue<string>("selectedCharacterID");
-
-                if (ownedCharacters.Count == 0 || string.IsNullOrEmpty(selectedCharacter))
-                {
-                    string defaultCharacterID = "civciv_01"; 
-                    if (!ownedCharacters.Contains(defaultCharacterID))
-                    {
-                        ownedCharacters.Add(defaultCharacterID);
-                    }
-                    selectedCharacter = defaultCharacterID;
-                }
-
-                UserDataManager.instance.setUserData(
-                    userData["nickname"].ToString(),
-                    userData["email"].ToString(),
-                    user.UserId,
-                    elo,
-                    coins,
-                    ownedCharacters,
-                    selectedCharacter);
-            }
-            isFetchComplete = true;
-        });
-
-        yield return new WaitUntil(() => isFetchComplete);
-    }
-
-    IEnumerator UpdateSlider(float targetValue)
-    {
         float startValue = loadingSlider.value;
         float time = 0;
+        float duration = 0.5f;
 
-        while (time < 0.5f) 
+        while (time < duration) 
         {
             loadingSlider.value = Mathf.Lerp(startValue, targetValue, time / 0.5f);
             time += Time.deltaTime;
-            yield return null;
+            await Task.Yield();
         }
         loadingSlider.value = targetValue;
     }
 
-    void ConnectToPhoton()
+    void ConnectToPhoton(string userId)
     {
         isReadyToProceed = false;
         PhotonNetwork.AutomaticallySyncScene = true;
@@ -193,6 +141,16 @@ public class LoadingManager : MonoBehaviourPunCallbacks
         }
         else
         {
+            if(!string.IsNullOrEmpty(userId))
+            {
+                PhotonNetwork.AuthValues = new AuthenticationValues(userId);
+                Debug.Log($"Photon AuthValues ayarlandý. UserID: {userId}");
+            }
+            else
+            {
+                Debug.LogError("Firebase UserID bulunamadý! Photon'a anonim olarak baðlanýlacak.");
+            }
+
             PhotonNetwork.GameVersion = gameVersion;
             PhotonNetwork.ConnectUsingSettings();
         }

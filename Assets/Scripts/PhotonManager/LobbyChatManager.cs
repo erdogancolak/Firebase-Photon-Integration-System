@@ -14,6 +14,14 @@ public class LobbyChatManager : MonoBehaviourPunCallbacks
     [SerializeField] private TMP_Text chatHistoryText;
     [SerializeField] private ScrollRect chatScroolView;
 
+    public override void OnEnable()
+    {
+        base.OnEnable();
+    }
+    public override void OnDisable()
+    {
+        base.OnDisable();
+    }
 
     public void SendMessageButton()
     {

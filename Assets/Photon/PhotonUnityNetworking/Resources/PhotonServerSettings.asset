@@ -19,14 +19,14 @@ MonoBehaviour:
     AppIdVoice: 
     AppVersion: 
     UseNameServer: 1
-    FixedRegion: 
+    FixedRegion: eu
     Server: 
     Port: 0
     ProxyServer: 
     Protocol: 0
     EnableProtocolFallback: 1
     AuthMode: 0
-    EnableLobbyStatistics: 0
+    EnableLobbyStatistics: 1
     NetworkLogging: 1
   DevRegion: eu
   PunLogging: 0
@@ -41,5 +41,5 @@ MonoBehaviour:
   - RespawnSpaceship
   - ReceiveChatMessage
   DisableAutoOpenWizard: 1
-  ShowSettings: 0
+  ShowSettings: 1
   DevRegionSetOnce: 1

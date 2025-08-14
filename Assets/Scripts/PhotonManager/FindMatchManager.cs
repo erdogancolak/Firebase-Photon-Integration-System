@@ -146,6 +146,8 @@ public class FindMatchManager : MonoBehaviourPunCallbacks
     {
         Debug.Log("Odaya baþarýyla katýlýndý! Oda Adý = " + PhotonNetwork.CurrentRoom.Name);
 
+        Handheld.Vibrate();
+
         if(PhotonNetwork.IsMasterClient)
         {
             Debug.Log("Master Client Olarak girildi!");

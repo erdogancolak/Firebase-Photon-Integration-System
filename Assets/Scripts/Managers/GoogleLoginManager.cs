@@ -103,6 +103,8 @@ public class GoogleLoginManager : MonoBehaviour
                 List<string> ownedCharacters = snapshot.GetValue<List<string>>("ownedCharacterIDs") ?? new List<string>();
                 string selectedCharacter = snapshot.GetValue<string>("selectedCharacterID");
 
+                List<string> friends = snapshot.GetValue<List<string>>("friends") ?? new List<string>();
+
                 if (ownedCharacters.Count == 0 || string.IsNullOrEmpty(selectedCharacter))
                 {
                     string defaultCharacterID = "civciv_01"; 
@@ -110,7 +112,7 @@ public class GoogleLoginManager : MonoBehaviour
                     selectedCharacter = defaultCharacterID;
                 }
 
-                UserDataManager.instance.setUserData(userData["nickname"].ToString(), userData["email"].ToString(), newUser.UserId,elo,coins,ownedCharacters,selectedCharacter);
+                UserDataManager.instance.setUserData(userData["nickname"].ToString(), userData["email"].ToString(), newUser.UserId,elo,coins,ownedCharacters,selectedCharacter,friends);
 
                 PlayerPrefs.SetInt("IsLoggedIn", 1);
                 PlayerPrefs.Save();
@@ -172,6 +174,7 @@ public class GoogleLoginManager : MonoBehaviour
             {"coins", 100 },
             {"ownedCharacterIDs", new List<string> { defaultCharacterID } },
             {"selectedCharacterID", defaultCharacterID  },
+            {"friends",new List<string>() },
             {"created_at", FieldValue.ServerTimestamp },
             {"device_language",Application.systemLanguage.ToString() },
             {"country_code",RegionInfo.CurrentRegion.TwoLetterISORegionName },
@@ -183,7 +186,7 @@ public class GoogleLoginManager : MonoBehaviour
         Debug.Log("Nickname baþarýyla kaydedildi! Oyun sahnesi yükleniyor...");
         nicknamePanel.SetActive(false);
 
-        UserDataManager.instance.setUserData(nickname, userToSave.Email, userToSave.UserId,0,100, new List<string> { defaultCharacterID }, defaultCharacterID);
+        UserDataManager.instance.setUserData(nickname, userToSave.Email, userToSave.UserId,0,100, new List<string> { defaultCharacterID }, defaultCharacterID,new List<string>());
 
         PlayerPrefs.SetInt("IsLoggedIn", 1);
         PlayerPrefs.Save();
@@ -258,5 +261,14 @@ public class GoogleLoginManager : MonoBehaviour
                 }
             });
         });
+    }
+    private void OnDestroy()
+    {
+        if (auth != null)
+        {
+            auth.StateChanged -= authStateChanged;
+            auth = null;
+            Debug.Log("GoogleLoginManager: Auth state listener temizlendi.");
+        }
     }
 }

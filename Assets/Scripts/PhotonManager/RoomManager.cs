@@ -4,6 +4,7 @@ using Photon.Pun;
 using System.Collections.Generic;
 using Photon.Realtime;
 using UnityEngine.SceneManagement;
+using ExitGames.Client.Photon;
 
 public class RoomManager : MonoBehaviourPunCallbacks
 {
@@ -72,27 +73,9 @@ public class RoomManager : MonoBehaviourPunCallbacks
     {
         GameObject listItem = Instantiate(playerListItemPrefab, playerListContainer);
 
-        //TMP_Text textComponent = listItem.GetComponent<TMP_Text>();
-        TMP_Text nicknameText = listItem.transform.Find("NicknameText").GetComponent<TMP_Text>();
-        TMP_Text eloText = listItem.transform.Find("EloText").GetComponent<TMP_Text>();
-        if (player.IsMasterClient)
-        {
-            nicknameText.text = player.NickName + " (Kurucu)";
-            nicknameText.color = Color.yellow;
-        }
-        else
-        {
-            nicknameText.text = player.NickName;
-        }
-        if(player.CustomProperties.TryGetValue("elo",out object eloValue))
-        {
-            eloText.text = ($"{eloValue}");
-        }
-        else
-        {
-            eloText.text = "?";
-        }
-            playerList.Add(listItem);
+        listItem.GetComponent<PlayerListItem>().Setup(player);
+
+        playerList.Add(listItem);
     }
     public void ReconnectAndRejoin()
     {
@@ -120,6 +103,10 @@ public class RoomManager : MonoBehaviourPunCallbacks
     public override void OnJoinedRoom()
     {
         Debug.Log("Odaya baþarýyla girildi/geri dönüldü.");
+
+        isLeavingManually = false;
+
+        PhotonNetwork.AddCallbackTarget(this);
 
         UpdatePlayerList(); 
     }
@@ -176,5 +163,15 @@ public class RoomManager : MonoBehaviourPunCallbacks
         {
             Debug.LogWarning("Ýnternet baðlantýsý nedeniyle Photon baðlantýsý koptu. Panel aktif.");
         }
+    }
+    public override void OnPlayerPropertiesUpdate(Player targetPlayer, Hashtable changedProps)
+    {
+        Debug.Log($"<color=orange>OnPlayerPropertiesUpdate Tetiklendi!</color> " +
+              $"Hedef Oyuncu: {targetPlayer.NickName}, " +
+              $"Ýnaktif mi?: {targetPlayer.IsInactive}, " +
+              $"Deðiþen Özellikler: {changedProps.ToStringFull()}");
+
+        Debug.Log(targetPlayer.NickName + " oyuncusunun durumu güncellendi. Liste yenileniyor.");
+        UpdatePlayerList();
     }
 }

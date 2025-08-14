@@ -1,4 +1,5 @@
 using Firebase.Auth;
+using Firebase.Extensions;
 using Firebase.Firestore;
 using Google;
 using Photon.Pun;
@@ -7,12 +8,15 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using UnityEngine.TextCore.Text;
+using System;
+using System.Globalization;
+using System.Linq;
 
 public class UserDataManager : MonoBehaviour
 {
     public static UserDataManager instance { get; private set; }
 
+    public static event System.Action OnBeforeSignOut;
     public string UserNickname { get; private set; }
     public string UserEmail { get; private set; }
     public string UserID { get; private set; }
@@ -24,6 +28,9 @@ public class UserDataManager : MonoBehaviour
     [Header("Characters")]
     public List<string> OwnedCharacterIDs { get; private set; }
     public string SelectedCharacterID { get; private set; }
+
+    [Header("Social")]
+    public List<string> FriendList;
     private void Awake()
     {
         if(instance == null)
@@ -31,6 +38,7 @@ public class UserDataManager : MonoBehaviour
             instance = this;
             DontDestroyOnLoad(gameObject);
             isDataLoaded = false;
+            FriendList = new List<string>();
         }
         else
         {
@@ -38,7 +46,7 @@ public class UserDataManager : MonoBehaviour
         }
     }
 
-    public void setUserData(string nickname,string email,string userId,int eloPoints,int coins, List<string> ownedCharacters, string selectedCharacter)
+    public void setUserData(string nickname,string email,string userId,int eloPoints,int coins, List<string> ownedCharacters, string selectedCharacter,List<string> friends)
     {
         UserNickname = nickname;
         UserEmail = email;
@@ -47,7 +55,111 @@ public class UserDataManager : MonoBehaviour
         Coins = coins;
         OwnedCharacterIDs = ownedCharacters;
         SelectedCharacterID = selectedCharacter;
+        FriendList = friends;
         isDataLoaded = true;
+    }
+
+    public bool isFriend(string userID)
+    {
+        if (string.IsNullOrEmpty(userID) || FriendList == null) return false;
+        return FriendList.Contains(userID);
+    }
+
+    public async Task AddFriend(string friendUserID)
+    {
+        if(isFriend(friendUserID) || friendUserID == this.UserID)
+        {
+            Debug.LogWarning("Bu kullanýcý zaten arkadaþ listenizde veya kendinizi ekleyemezsiniz.");
+            return;
+        }
+
+        FriendList.Add(friendUserID);
+        Debug.Log($"Yerel listeye eklendi: {friendUserID}");
+        DocumentReference userDocRef = FirebaseFirestore.DefaultInstance.Collection("kullanicilar").Document(this.UserID);
+        await userDocRef.UpdateAsync("friends", FieldValue.ArrayUnion(friendUserID));
+        Debug.Log($"Firestore güncellendi: {friendUserID} arkadaþ olarak eklendi.");
+    }
+
+    public async Task RemoveFriend(string friendUserID)
+    {
+        if (!isFriend(friendUserID)) return;
+
+        FriendList.Remove(friendUserID);
+
+        DocumentReference userDocRef = FirebaseFirestore.DefaultInstance.Collection("kullanicilar").Document(this.UserID);
+        await userDocRef.UpdateAsync("friends", FieldValue.ArrayRemove(friendUserID));
+        Debug.Log($"Firestore güncellendi: {friendUserID} arkadaþlýktan çýkarýldý.");
+    }
+
+    public Task<FirebaseUser> InitializeAndFetchUserAsync()
+    {
+        var completionSource = new TaskCompletionSource<FirebaseUser>();
+
+        
+        if (FirebaseAuth.DefaultInstance.CurrentUser != null)
+        {
+            Debug.Log("Firebase kullanýcýsý zaten hazýr. Veriler çekiliyor...");
+            FetchData(FirebaseAuth.DefaultInstance.CurrentUser, () => completionSource.SetResult(FirebaseAuth.DefaultInstance.CurrentUser));
+            return completionSource.Task;
+        }
+
+        EventHandler authStateChangedHandler = null;
+        authStateChangedHandler = (sender, e) =>
+        {
+            var currentUser = FirebaseAuth.DefaultInstance.CurrentUser;
+            if (currentUser != null)
+            {
+                Debug.Log("Firebase Auth durumu deðiþti, kullanýcý bulundu. Veriler çekiliyor...");
+                
+                FirebaseAuth.DefaultInstance.StateChanged -= authStateChangedHandler;
+                FetchData(currentUser, () => completionSource.SetResult(currentUser));
+            }
+            
+        };
+
+        FirebaseAuth.DefaultInstance.StateChanged += authStateChangedHandler;
+
+        return completionSource.Task;
+    }
+
+    private void FetchData(FirebaseUser user, System.Action onComplete)
+    {
+        DocumentReference docRef = FirebaseFirestore.DefaultInstance.Collection("kullanicilar").Document(user.UserId);
+        docRef.GetSnapshotAsync().ContinueWithOnMainThread(task =>
+        {
+            if (task.IsCompleted && !task.IsFaulted && task.Result.Exists)
+            {
+                var userData = task.Result.ToDictionary();
+                int elo = System.Convert.ToInt32(userData["eloPoints"]);
+                int coins = userData.ContainsKey("coins") ? System.Convert.ToInt32(userData["coins"]) : 0;
+
+                List<string> ownedCharacters = task.Result.GetValue<List<string>>("ownedCharacterIDs") ?? new List<string>();
+                string selectedCharacter = task.Result.GetValue<string>("selectedCharacterID");
+                List<string> friends = task.Result.GetValue<List<string>>("friends") ?? new List<string>();
+
+                if (ownedCharacters.Count == 0 || string.IsNullOrEmpty(selectedCharacter))
+                {
+                    string defaultCharacterID = "civciv_01";
+                    if (!ownedCharacters.Contains(defaultCharacterID)) { ownedCharacters.Add(defaultCharacterID); }
+                    selectedCharacter = defaultCharacterID;
+                }
+
+                setUserData(
+                    userData["nickname"].ToString(),
+                    userData["email"].ToString(),
+                    user.UserId,
+                    elo,
+                    coins,
+                    ownedCharacters,
+                    selectedCharacter,
+                    friends);
+            }
+            else
+            {
+                Debug.LogError("Firestore'dan kullanýcý verisi çekilemedi veya kullanýcý mevcut deðil.");
+            }
+            onComplete?.Invoke();
+        });
     }
     public async Task UpdateElo(int eloChange)
     {
@@ -136,6 +248,9 @@ public class UserDataManager : MonoBehaviour
     {
         Debug.Log("Çýkýþ yapma iþlemi baþlatýldý...");
 
+        OnBeforeSignOut?.Invoke();
+        Debug.Log("OnBeforeSignOut event'i tetiklendi.");
+
         if (GoogleSignIn.DefaultInstance != null)
         {
             GoogleSignIn.DefaultInstance.SignOut();
@@ -161,6 +276,7 @@ public class UserDataManager : MonoBehaviour
         this.Coins = 0;
         this.OwnedCharacterIDs = new List<string>();
         this.SelectedCharacterID = null;
+        this.FriendList = new List<string>();
         this.isDataLoaded = false;
         Debug.Log("UserDataManager verileri sýfýrlandý.");
 
@@ -171,4 +287,5 @@ public class UserDataManager : MonoBehaviour
         yield return new WaitForSeconds(0.5f);
         SceneManager.LoadScene("LoginScene");
     }
+    
 }
