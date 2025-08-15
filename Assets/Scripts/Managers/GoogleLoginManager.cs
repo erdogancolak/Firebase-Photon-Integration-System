@@ -88,32 +88,6 @@ public class GoogleLoginManager : MonoBehaviour
             DocumentSnapshot snapshot = task.Result;
             if (snapshot.Exists)
             {
-                Debug.Log($"Hoþ geldin {snapshot.GetValue<string>("nickname")}! Oyun sahnesi yükleniyor...");
-
-                var userData = snapshot.ToDictionary();
-
-                int elo = System.Convert.ToInt32(userData["eloPoints"]);
-
-                int coins = 0;
-                if(userData.ContainsKey("coins"))
-                {
-                    coins = System.Convert.ToInt32(userData["coins"]);
-                }
-
-                List<string> ownedCharacters = snapshot.GetValue<List<string>>("ownedCharacterIDs") ?? new List<string>();
-                string selectedCharacter = snapshot.GetValue<string>("selectedCharacterID");
-
-                List<string> friends = snapshot.GetValue<List<string>>("friends") ?? new List<string>();
-
-                if (ownedCharacters.Count == 0 || string.IsNullOrEmpty(selectedCharacter))
-                {
-                    string defaultCharacterID = "civciv_01"; 
-                    ownedCharacters.Add(defaultCharacterID);
-                    selectedCharacter = defaultCharacterID;
-                }
-
-                UserDataManager.instance.setUserData(userData["nickname"].ToString(), userData["email"].ToString(), newUser.UserId,elo,coins,ownedCharacters,selectedCharacter,friends);
-
                 PlayerPrefs.SetInt("IsLoggedIn", 1);
                 PlayerPrefs.Save();
 
@@ -185,8 +159,6 @@ public class GoogleLoginManager : MonoBehaviour
 
         Debug.Log("Nickname baþarýyla kaydedildi! Oyun sahnesi yükleniyor...");
         nicknamePanel.SetActive(false);
-
-        UserDataManager.instance.setUserData(nickname, userToSave.Email, userToSave.UserId,0,100, new List<string> { defaultCharacterID }, defaultCharacterID,new List<string>());
 
         PlayerPrefs.SetInt("IsLoggedIn", 1);
         PlayerPrefs.Save();
