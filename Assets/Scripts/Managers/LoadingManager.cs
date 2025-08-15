@@ -146,10 +146,6 @@ public class LoadingManager : MonoBehaviourPunCallbacks
                 PhotonNetwork.AuthValues = new AuthenticationValues(userId);
                 Debug.Log($"Photon AuthValues ayarlandý. UserID: {userId}");
             }
-            else
-            {
-                Debug.LogError("Firebase UserID bulunamadý! Photon'a anonim olarak baðlanýlacak.");
-            }
 
             PhotonNetwork.GameVersion = gameVersion;
             PhotonNetwork.ConnectUsingSettings();

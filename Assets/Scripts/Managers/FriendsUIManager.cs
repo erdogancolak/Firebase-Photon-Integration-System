@@ -68,8 +68,6 @@ public class FriendsUIManager : MonoBehaviourPunCallbacks
         ListenForFriendListChanges();
         ListenForFriendRequests();
 
-        StartFriendStatusUpdates();
-
         hasInitialLoadCompleted = true;
         yield return null;
     }
@@ -78,11 +76,14 @@ public class FriendsUIManager : MonoBehaviourPunCallbacks
     {
         await LoadAndDisplayFriends();
     }
-    public override void OnConnectedToMaster()
+
+    public override void OnJoinedLobby()
     {
+        base.OnJoinedLobby();
+        Debug.Log("FriendsUIManager: Lobiye başarıyla girildi. Arkadaş durumu güncellemeleri başlatılıyor.");
+
         StartFriendStatusUpdates();
     }
-
     public async Task LoadAndDisplayFriends(List<string> newFriendIDs = null)
     {
         if (isFriendListLoading) return;
@@ -290,33 +291,7 @@ public class FriendsUIManager : MonoBehaviourPunCallbacks
         PhotonNetwork.JoinRoom(roomName);
         ShowNotification("Odaya Katılınıyor...", Color.white, 3f);
     }
-    public override void OnJoinedRoom()
-    {
-        Debug.Log("Odaya başarıyla girildi! Lobby sahnesi yükleniyor...");
-        PhotonNetwork.LoadLevel("LobbyScene");
-    }
-
-    public override void OnJoinRoomFailed(short returnCode, string message)
-    {
-        Debug.LogError($"Odaya girilemedi. Kod: {returnCode} Mesaj: {message}");
-
-        string notificationMessage = $"Katılınamadı: {message}";
-
-        switch (returnCode)
-        {
-            case ErrorCode.GameFull:
-                notificationMessage = "Oda dolu!";
-                break;
-            case ErrorCode.GameClosed:
-                notificationMessage = "Arkadaşın oyunu başlamış veya oda kapalı.";
-                break;
-            case ErrorCode.GameDoesNotExist:
-                notificationMessage = "Oda artık mevcut değil.";
-                break;
-        }
-
-        ShowNotification(notificationMessage, Color.red, 4f);
-    }
+    
     public void OnClick_SendFriendRequest()
     {
         string nicknameToAdd = addFriendInput.text.Trim();
